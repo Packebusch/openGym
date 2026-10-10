@@ -194,19 +194,36 @@ export const ownsDumbbells = S => dumbbellsOf(S).length > 0
 export const withDumbbells = (S, weights, now = Date.now()) =>
   ({ ...(isMap(S?.dumbbells) ? S.dumbbells : {}), [unitOf(S)]: { weights: cleanWeights(weights), _ts: now } })
 
+// ---- kettlebell inventory ----------------------------------------------------------------------
+// The same list for kettlebells (S.kettlebells[unit] = { weights, _ts }), kept apart from the
+// dumbbells: a rack of 2 kg steps and three bells of 12, 20 and 28 are different equipment, and
+// a kettlebell lift stepping onto a 22 kg dumbbell is no better than one on the 2.5 kg grid.
+
+/** The kettlebells this profile owns for its unit, lightest first; [] when it has not said. */
+export const kettlebellsOf = S => cleanWeights(S?.kettlebells?.[unitOf(S)]?.weights)
+/** Whether this profile has listed its kettlebells for its unit. */
+export const ownsKettlebells = S => kettlebellsOf(S).length > 0
+/** S.kettlebells with the profile's unit set to `weights`, stamped like withDumbbells. */
+export const withKettlebells = (S, weights, now = Date.now()) =>
+  ({ ...(isMap(S?.kettlebells) ? S.kettlebells : {}), [unitOf(S)]: { weights: cleanWeights(weights), _ts: now } })
+
+/** The bells this profile owns for an equipment type ('dumbbell' | 'kettlebell'); [] for any other. */
+export const bellsOf = (S, eq) => (eq === 'dumbbell' ? dumbbellsOf(S) : eq === 'kettlebell' ? kettlebellsOf(S) : [])
+
 /**
  * The loads this exercise can be done at with the bells you own, lightest first, in the unit and
  * meaning the sets are logged in; null when the inventory does not apply and the increment's grid
- * stays in charge. Only dumbbell exercises with a load of their own: an added-weight (bodyweight)
- * entry or a kettlebell keeps its grid. An exercise logged as both bells together on two bells
- * moves in pairs (2 × each weight); every other meaning moves one bell at a time.
+ * stays in charge. Dumbbell exercises read the dumbbell list, kettlebell exercises the kettlebell
+ * list; an added-weight (bodyweight) entry keeps its grid. An exercise logged as both bells
+ * together on two bells moves in pairs (2 × each weight); every other meaning moves one bell at a
+ * time.
  */
 export function ownedWeightsFor(S, cfg) {
   const ex = exOf(cfg?.id)
-  if (ex?.eq !== 'dumbbell') return null
+  if (!BELL_EQ.has(ex?.eq)) return null
   const bw = cfg?.bodyweight != null ? !!cfg.bodyweight : isBodyweightEq(cfg?.id)
   if (bw) return null
-  const ws = dumbbellsOf(S)
+  const ws = bellsOf(S, ex.eq)
   if (!ws.length) return null
   return dbLoadFor(S, cfg) === 'total' && bellsIn(cfg) === 2 ? ws.map(w => tidy(w * 2)) : ws
 }

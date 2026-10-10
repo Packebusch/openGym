@@ -176,6 +176,9 @@ export const DEF = {
   // (lib/dumbbells.js). Single bells, lightest first. Kept per unit and stamped like the plates;
   // absent or empty = no list, and dumbbell lifts step by their increment as before.
   dumbbells: {},
+  // The kettlebells you own, per unit, shaped like the dumbbells (lib/dumbbells.js). Kettlebell
+  // lifts step and progress over these; absent or empty = their increment as before.
+  kettlebells: {},
   // Gym check-in cards (see views/CheckIn.jsx). Each is a membership
   // code shown as a QR/barcode at the gym's turnstile — added by typing it, importing a photo
   // of the card, or scanning it. We only ever keep the code's VALUE, never a photo: the image

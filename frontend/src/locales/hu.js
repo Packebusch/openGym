@@ -2244,4 +2244,9 @@ export default {
   'Your sports watch, calling you back.': 'A sportórád visszahív.',
   'Coach wants you back on the bar.': 'Az edző visszavár a rúdhoz.',
   'Gentle, for headphones or a quiet room.': 'Halk, fülhallgatóhoz vagy csendes helyre.',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+{0} további',
+  'Target goes up today': 'A cél ma emelkedik',
+  'Deload today: target comes down': 'Ma deload: a cél csökken',
+  'See exercises': 'Gyakorlatok megtekintése',
 }

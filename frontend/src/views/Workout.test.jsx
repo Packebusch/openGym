@@ -8,7 +8,9 @@ import { nextPrescription } from '../lib/progression.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { buildCompletedWorkout } from '../lib/finish-workout.js'
 import { isWarmupRow } from '../lib/workout-model.js'
-import { finishWorkout, finishWorkoutSheet } from '../sheets.jsx'
+import { finishWorkout, finishWorkoutSheet, startFlow, sessionPreviewSheet } from '../sheets.jsx'
+import { exOr } from '../lib/exercises.js'
+import { exerciseNameText } from '../lib/format.js'
 
 // A menu's actions in order, whether it came as one list or in groups (menuSheet `sections`).
 const menuItemsOf = menu => (menu.sections ? menu.sections.flatMap(g => g.items || []) : menu.items || []).filter(Boolean)
@@ -84,6 +86,7 @@ vi.mock('../store/useUI.js', () => {
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
 vi.mock('../sheets.jsx', () => ({
   startFlow: vi.fn(),
+  sessionPreviewSheet: vi.fn(),
   exercisePicker: mocks.exercisePicker,
   exConfigSheet: mocks.exConfigSheet,
   exerciseDetailSheet: vi.fn(),
@@ -3441,5 +3444,83 @@ describe('the workout screen chrome (v1.3.11)', () => {
     await unmount()
     await mount([exercise('plain-bench', [false])], 0, { gifSize: 'mini', active: { workoutView: 'compact' } })
     expect(container.querySelector('.wthumb')).toBeNull()
+  })
+})
+
+// The plan, the reference set and the progression's reason sit in one block above the sets, and
+// the bottom of the screen carries Add exercise and — only once everything is done — Finish.
+describe('a calmer exercise card', () => {
+  const finishButtons = () => [...container.querySelectorAll('button.btn')].filter(b => /^(Finish workout|Save changes)/.test(b.textContent.trim()))
+
+  it('groups the plan line inside one info block', async () => {
+    await mount([exercise('plain-bench', [false], { planned: { sets: 1, reps: 5, weight: 60 }, target: { mode: 'reps', sets: 1, reps: 5, weight: 60 } })])
+    const info = container.querySelectorAll('.exinfo')
+    expect(info.length).toBe(1)
+    expect(info[0].querySelector('.planline')?.textContent).toBe('Plan: 1 × 5')
+  })
+
+  it('has no empty info block when there is nothing to say', async () => {
+    await mount([exercise('plain-bench', [false])])
+    expect(container.querySelector('.exinfo')).toBeNull()
+  })
+
+  it('has no session-note button or "Finish early" at the bottom while sets are left', async () => {
+    await mount([exercise('plain-bench', [true, false])])
+    expect(finishButtons()).toEqual([])
+    expect(container.textContent).not.toContain('Finish workout early')
+    expect([...container.querySelectorAll('button')].some(b => b.textContent.trim() === 'Add session note')).toBe(false)
+    // The header's Finish pill is still there.
+    expect(container.querySelector('.whdr-finish')?.textContent).toBe('Finish')
+  })
+
+  it('offers Finish workout at the bottom once every set is done', async () => {
+    await mount([exercise('plain-bench', [true, true])])
+    expect(finishButtons().map(b => b.textContent.trim())).toEqual(['Finish workout'])
+    finishWorkout.mockClear()
+    await click(finishButtons()[0])
+    expect(finishWorkout).toHaveBeenCalledOnce()
+  })
+
+  it('keeps Save changes at the bottom of a saved workout\'s editor', async () => {
+    await mount([exercise('plain-bench', [true, false])], 0, { active: { editingWorkoutId: 'saved' } })
+    expect(finishButtons().map(b => b.textContent.trim())).toEqual(['Save changes'])
+  })
+})
+
+// The Start screen names what each routine holds, and a row tap shows it before anything starts.
+describe('the Start screen', () => {
+  const routines = [
+    { id: 'push', name: 'Push', ex: [{ id: '0025' }] },
+    { id: 'pull', name: 'Pull', ex: [{ id: '0031' }, { id: '0025' }] },
+  ]
+  const open = async (over = {}) => {
+    mocks.S = { ...workout([]), active: null, routines, week: { [new Date().getDay()]: ['push'] }, dayPlan: {}, queue: null, ...over }
+    installDom()
+    await act(async () => { root.render(React.createElement(Workout)) })
+  }
+  const otherRow = () => [...container.querySelectorAll('.list .item')].find(el => el.textContent.includes('Pull'))
+
+  it('lists another routine\'s exercises instead of a bare count', async () => {
+    await open()
+    expect(otherRow().querySelector('.ss').textContent).toBe(['0031', '0025'].map(id => exerciseNameText(exOr(id))).join(' · '))
+  })
+
+  it('a row tap opens the preview; its Start pill starts at once', async () => {
+    await open()
+    startFlow.mockClear(); sessionPreviewSheet.mockClear()
+    await click(otherRow())
+    expect(sessionPreviewSheet).toHaveBeenCalledWith(['pull'])
+    expect(startFlow).not.toHaveBeenCalled()
+    await click(otherRow().querySelector('button.tag'))
+    expect(startFlow).toHaveBeenCalledWith(['pull'])
+    expect(sessionPreviewSheet).toHaveBeenCalledTimes(1)
+  })
+
+  it('today\'s plan offers See exercises next to Start', async () => {
+    await open()
+    sessionPreviewSheet.mockClear()
+    const see = [...container.querySelectorAll('button')].find(b => b.textContent.trim() === 'See exercises')
+    await click(see)
+    expect(sessionPreviewSheet).toHaveBeenCalledWith(['push'])
   })
 })

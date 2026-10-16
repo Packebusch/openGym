@@ -26,7 +26,7 @@ import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
-import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
+import { startFlow, sessionPreviewSheet, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
 import { effortColor } from '../lib/effort.js'
 import Elapsed from '../components/Elapsed.jsx'
@@ -38,6 +38,8 @@ import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../li
 import { routineChangesFromEntry, updateRoutineFromEntry } from '../lib/routines.js'
 import { sessionNoProg, setSessionNoProg, setEntryNoProg, joinSessionNoProg } from '../lib/session-noprog.js'
 import { glyphOf } from '../lib/glyphs.js'
+import { routineExerciseIds, firstOf } from '../lib/session-preview.js'
+import { tappable } from '../lib/use-sheet-keyboard.js'
 import { markAllSetsDone, sessionHistory } from '../lib/backfill.js'
 import { bestSetFor } from '../lib/exercise-history.js'
 import { isWarmupRow, isFailureSet, toggleFailure, isDropSet, isRestPauseSet, dropsOf, clustersOf, addDrop, addCluster, removeDropAt, removeClusterAt, setDropAt, setClusterAt, nextDropWeight, nextBurstReps, isSideSet, makeSideSet, setSideField, toggleSide, addSideDrop, removeSideDropAt, setSideDropAt, addSideCluster, removeSideClusterAt, setSideClusterAt, WEIGHT_ORIGIN_MANUAL } from '../lib/workout-model.js'
@@ -62,21 +64,31 @@ function StartChooser() {
   const todayOvr = S.dayPlan[todayISO()] !== undefined && pinState(S, S.dayPlan[todayISO()]) !== 'done' // a fulfilled pin is no override
   const idSet = new Set(todayIds)
   const others = S.routines.filter(r => !idSet.has(r.id))
+  // A routine reads as its first exercises, not just a count: "Bench Press · Row · +3 more".
+  const exLineOf = routines => {
+    const { shown, more } = firstOf(routineExerciseIds(routines), 3)
+    return shown.map(id => exerciseNameText(exOr(id))).join(' · ') + (more ? ' · ' + t('+{0} more', more) : '')
+  }
   return <div className="narrow">
     <div className="hdr"><div><h1>{t('Start workout')}</h1><div className="sub">{t(DAYN[new Date().getDay()])} · {todayRoutines.length ? t('today is {0}', todayName) : t('rest day, but no one’s stopping you')}</div></div></div>
     {todayRoutines.length > 0 && <div className="card" style={{ borderColor: 'var(--acc)' }}>
       <h2 className="accent">{t("Today's plan")}{todayOvr ? ' · ' + t('rescheduled') : ''}</h2>
       <div className="row between" style={{ marginBottom: 12 }}>
-        <div><div className="big">{todayName}</div><div className="muted small">{exCount(todayRoutines.reduce((n, r) => n + r.ex.length, 0))}</div></div>
+        <div style={{ minWidth: 0 }}><div className="big">{todayName}</div><div className="muted small">{exCount(todayRoutines.reduce((n, r) => n + r.ex.length, 0))}</div>
+          <div className="muted small" style={{ marginTop: 2 }}>{exLineOf(todayRoutines)}</div></div>
         <span className="lrow-i" style={{ width: 38, height: 38, borderRadius: 9, fontSize: 22 }}><Icon name={glyphOf(todayRoutines[0].emoji)} /></span>
       </div>
       <Button variant="primary" icon="play" onClick={() => startFlow(todayIds)}>{t('Start {0}', todayName)}</Button>
+      <div style={{ height: 6 }} />
+      <Button variant="ghost" icon="list" onClick={() => sessionPreviewSheet(todayIds)}>{t('See exercises')}</Button>
     </div>}
     {others.length > 0 && <><h4 className="sec">{t('Other routines')}</h4>
-      <div className="list">{others.map(r => <div key={r.id} className="item" onClick={() => startFlow([r.id])}>
+      {/* A tap on the row shows the routine (the preview sheet, with its own Start); the Start
+          pill starts it at once. */}
+      <div className="list">{others.map(r => <div key={r.id} className="item" {...tappable(() => sessionPreviewSheet([r.id]))}>
         <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        <span className="tag acc">{t('Start')}</span></div>)}</div></>}
+        <div className="grow" style={{ minWidth: 0 }}><div className="tt">{r.name}</div><div className="ss" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.ex.length ? exLineOf([r]) : exCount(0)}</div></div>
+        <button type="button" className="tag acc" style={{ flex: 'none', minHeight: 30, padding: '0 12px' }} onClick={e => { e.stopPropagation(); startFlow([r.id]) }}>{t('Start')}</button></div>)}</div></>}
     <div style={{ height: 14 }} />
     <Button icon="shuffle" onClick={() => startFlow([])}>{t('Freestyle workout (pick as you go)')}</Button>
     {!S.routines.length && <><div style={{ height: 10 }} /><Button variant="primary" onClick={() => nav('/plan')}>{t('Build a plan first')}</Button></>}
@@ -677,6 +689,9 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       {t('From {0}:', fmtDate(pinnedNote.d, true))} {pinnedNote.note}
     </div>}
     {entry.note && <div className="exnote">{entry.note}</div>}
+    {/* What today's rows are measured against, as one block: the plan, the reference set (last
+        time or best), and why the progression chose today's numbers. Each line keeps its own tap. */}
+    {(planLine || refLine || (guidance && onProgressionSettings)) && <div className="exinfo">
     {planLine}
     {refLine}
     {guidance && onProgressionSettings && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
@@ -684,6 +699,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
       <span><strong>{t(guidance.policyLabel)}</strong> · {t(...guidance.why)}</span>
     </button>}
+    </div>}
     </>}
     <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3/timed sizing as the rows, or the labels drift off their
@@ -2065,19 +2081,15 @@ function ActiveWorkout() {
       </div>
     </>}
     <div style={{ height: 10 }} />
-    {/* Wrapping up is when you know how the session went, so the note sits with the finish
-        button rather than somewhere in the header. */}
-    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-      <Button size="sm" icon="note" variant={A.note ? 'tinted' : undefined} onClick={sessionNoteSheet}>
-        {A.note ? t('Edit session note') : t('Add session note')}
-      </Button>
-    </div>
+    {/* The session note lives in the ⋯ menu and on the Finish sheet, where you wrap up. The header's
+        Finish pill is always there; down here a Finish shows only once every exercise is done, as
+        the next thing to tap — before that it was a second, greyed "Finish early" competing with
+        Add exercise. The editor of a saved workout keeps its Save changes here. */}
     {(() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
-      return <button className={allDone ? 'btn primary' : 'btn ghost dim'} onClick={finishWorkout}>
-        {editing ? t('Save changes') : allDone ? t('Finish workout') : t('Finish workout early · {0} exercises', exDone + '/' + A.entries.length)}
-      </button>
+      if (editing) return <button className="btn primary" onClick={finishWorkout}>{t('Save changes')}</button>
+      return allDone && <button className="btn primary" onClick={finishWorkout}>{t('Finish workout')}</button>
     })()}
     <div className="workout-end-spacer" />
   </WorkoutScrollAnchor>

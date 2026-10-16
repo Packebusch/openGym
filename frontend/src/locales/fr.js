@@ -2241,4 +2241,9 @@ export default {
   'Your sports watch, calling you back.': 'Ta montre de sport te rappelle.',
   'Coach wants you back on the bar.': 'Le coach te veut de retour à la barre.',
   'Gentle, for headphones or a quiet room.': 'Tout doux, pour un casque ou une pièce calme.',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+{0} de plus',
+  'Target goes up today': 'L’objectif monte aujourd’hui',
+  'Deload today: target comes down': 'Décharge aujourd’hui : l’objectif baisse',
+  'See exercises': 'Voir les exercices',
 }

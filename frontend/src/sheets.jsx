@@ -56,6 +56,7 @@ import { finishCompare, finishCardio } from './lib/finish-compare.js'
 import { workoutFit, fitFileName } from './lib/fit-export.js'
 import { joinSessionNoProg } from './lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
+import { sessionPreview } from './lib/session-preview.js'
 import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, sessionHistory } from './lib/backfill.js'
 import { moveWorkout, sameWorkout, startTimeOf, durationMinOf, setWorkoutDuration, rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from './lib/workout-date.js'
 import { editCompletedSession, editLeftEmpty, editedRecord, editChangesNothing } from './lib/session-edit.js'
@@ -2762,6 +2763,54 @@ export function startFlow(routineIds) {
   if (S().weighIn === false) { beginWorkout(routineIds, null); return }
   bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
 }
+// A planned session read before it starts (Home's today row, the coach week's chips, the Start
+// screen's routines): each exercise with what it opens at today and whether the weight moved,
+// supersets together, and Start at the bottom. Built from lib/session-preview.js, which walks the
+// same path beginWorkout does, so the numbers here are the rows you get on Start.
+function SessionPreview({ routineIds, close }) {
+  const st = useStore(s => s.S)
+  const p = useMemo(() => sessionPreview(st, routineIds, { speedUnit: speedUnitOf(st) }), [st, routineIds])
+  const name = deriveSessionName(p.routines.map(r => r.name)) || t('Freestyle')
+  const counts = [exCount(p.items.length), p.sets ? t('{0} sets', p.sets) : null].filter(Boolean).join(' · ')
+  // Muscle labels come capitalized from MUSCLE_NAME or raw from the library ("pectorals"); only they
+  // take the capitalize, so "14 sets" keeps its lower case.
+  const muscles = p.muscles.map(m => t(MUSCLE_NAME[m] || m)).join(' · ')
+  const row = i => {
+    const it = p.items[i]
+    const ex = exOr(it.id)
+    const up = it.kind === 'up', down = it.kind === 'deload'
+    return <div key={i} className="item">
+      <Thumb ex={ex} />
+      <div className="grow">
+        <div className={`tt ${exerciseNameClass(ex)}`}>{exerciseNameFor(ex)}</div>
+        <div className="ss row" style={{ gap: 4 }}>
+          {(up || down) && <span role="img" className="row" title={up ? t('Target goes up today') : t('Deload today: target comes down')}
+            aria-label={up ? t('Target goes up today') : t('Deload today: target comes down')}
+            style={{ color: up ? 'var(--acc)' : 'var(--yellow)', flex: 'none' }}><Icon name={up ? 'arrowUp' : 'arrowDown'} /></span>}
+          <span>{it.line}</span>
+        </div>
+      </div>
+    </div>
+  }
+  const start = () => { close(); startFlow(routineIds) }
+  return <>
+    <div className="row" style={{ gap: 10, marginBottom: 4 }}>
+      {p.routines[0] && <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name={glyphOf(p.routines[0].emoji)} /></span>}
+      <h3 style={{ margin: 0 }}>{name}</h3>
+    </div>
+    <div className="muted small" style={{ marginBottom: 12 }}>{counts}{muscles && <> · <span className="capitalize">{muscles}</span></>}</div>
+    {p.units.map((u, k) => u.length > 1
+      ? <div key={k} className="preview-ss">
+        <div className="small muted row" style={{ gap: 5, margin: '0 0 4px 2px' }}><Icon name="link" />{t('Superset')}</div>
+        <div className="list" style={{ marginBottom: 8 }}>{u.map(row)}</div>
+      </div>
+      : <div key={k} className="list" style={{ marginBottom: 8 }}>{row(u[0])}</div>)}
+    <div style={{ height: 6 }} />
+    <Button variant="primary" icon="play" onClick={start}>{t('Start workout')}</Button>
+  </>
+}
+export const sessionPreviewSheet = routineIds => ui().openSheet(close => <SessionPreview routineIds={routineIds} close={close} />)
+
 export function beginWorkout(routineIds, bw) {
   const st = S()
   const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
@@ -3346,6 +3395,9 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
       : done < total ? tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done) : null,
     sections: [
       { items: [{ icon: 'flag', accent: true, label: t('Finish and save'), onClick: doFinishWorkout }] },
+      // Wrapping up is when you know how the session went, so the note is offered here too
+      // (it moved off the bottom of the workout screen; the ⋯ menu still has it).
+      { items: [{ icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet }] },
       { items: [onDiscard && { icon: 'trash', danger: true, label: t('Discard workout'), onClick: onDiscard }] },
     ],
   })

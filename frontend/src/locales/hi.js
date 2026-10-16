@@ -2241,4 +2241,9 @@ export default {
   'Your sports watch, calling you back.': 'आपकी स्पोर्ट्स घड़ी आपको वापस बुला रही है।',
   'Coach wants you back on the bar.': 'कोच आपको बार पर वापस चाहते हैं।',
   'Gentle, for headphones or a quiet room.': 'धीमी, हेडफ़ोन या शांत कमरे के लिए।',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+{0} और',
+  'Target goes up today': 'आज लक्ष्य बढ़ रहा है',
+  'Deload today: target comes down': 'आज डीलोड: लक्ष्य घट रहा है',
+  'See exercises': 'व्यायाम देखें',
 }

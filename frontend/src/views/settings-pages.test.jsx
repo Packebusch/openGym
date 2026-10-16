@@ -417,8 +417,6 @@ describe('searchSettings', () => {
       expect(first('kompakt')).toBe('Layout')
       expect(first('wischen')).toBe('Swipe actions')
       expect(first('Geste')).toBe('Swipe actions')
-      await setLang('ar')
-      expect(searchSettings('تناوب', guestWeb, t).map(h => h.title)).toContain('How you train')
     } finally { await setLang('en') }
   })
 

@@ -129,19 +129,16 @@ describe('Library header count', () => {
     expect(sub(render())).toBe(`${EXDB.length} animated exercises + 5 of your own`)
   })
 
-  it('uses the language\'s own plural forms (Russian: 1 своё, 2 своих, 5 своих)', async () => {
-    const { default: ru } = await import('../locales/ru.js')
-    _setLangState('ru', ru, null, null)
-    const forms = ru['{1} animated exercises + {0} of your own']
-    expect(typeof forms).toBe('object')
+  it('uses the language\'s own singular and plural (German: 1 eigene, 5 eigene)', async () => {
+    const { default: de } = await import('../locales/de.js')
+    _setLangState('de', de, null, null)
     mocks.S.customEx = own(1)
     const one = sub(render())
     act(() => { mounted.splice(0).forEach(root => root.unmount()) })
     mocks.S.customEx = own(5)
     const five = sub(render())
-    expect(one).toContain(String(EXDB.length))
-    expect(five).toBe(forms.many.replace('{0}', '5').replace('{1}', String(EXDB.length)))
-    expect(one).not.toBe(five.replace('5', '1'))
+    expect(one).toBe(de['{1} animated exercises + 1 of your own'].replace('{1}', String(EXDB.length)))
+    expect(five).toBe(de['{1} animated exercises + {0} of your own'].replace('{0}', '5').replace('{1}', String(EXDB.length)))
   })
 
   it('keeps the subtitle on one line on wider screens, clipping with an ellipsis', () => {

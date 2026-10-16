@@ -104,7 +104,7 @@ export function addDeviceDataMessage(workouts, weighIns) {
 export function addDeviceSetupMessage(routines) {
   const n = Number(routines) || 0
   return n === 0
-    ? t('Your plan, notes or gym cards on this device were set up while signed out. Add them to your profile, or keep the profile exactly as it is on the server.')
+    ? t('Your plan or notes on this device were set up while signed out. Add them to your profile, or keep the profile exactly as it is on the server.')
     : n === 1
       ? t('{0} routine was made on this device while signed out. Add it to your profile, or keep the profile exactly as it is on the server.', n)
       : t('{0} routines were made on this device while signed out. Add them to your profile, or keep the profile exactly as it is on the server.', n)

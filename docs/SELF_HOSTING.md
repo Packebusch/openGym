@@ -233,7 +233,7 @@ is gated by your passkey and enforced server-side, so it needs no separate login
 An instance whose people share a language can start everyone in it:
 
 ```bash
-DEFAULT_LANG=pt-BR         # any code from Settings → Units & language → Language: de, es, fr, pt-BR, …
+DEFAULT_LANG=de            # en, de or de-CH
 ```
 
 The sign-in and create-profile screens open in that language, and so does every profile that

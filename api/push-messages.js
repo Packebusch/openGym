@@ -10,14 +10,6 @@ const COPY = {
     dayRoutineSuffix: 'today',
     dayBody: "It's on your plan. Let's go 💪",
   },
-  'pt-BR': {
-    restTitle: 'Descanso terminado 💪',
-    restBody: 'Hora da próxima série.',
-    testBody: 'Notificação de teste ✅ É assim que os alertas aparecem.',
-    dayFallbackTitle: 'Treino planejado para hoje',
-    dayRoutineSuffix: 'hoje',
-    dayBody: 'Está no seu plano. Bora treinar 💪',
-  },
 };
 
 const copyFor = lang => COPY[lang] || COPY.en;
@@ -44,7 +36,7 @@ export function dayReminderPush(lang, routine) {
 
 // The missed-workout nudge (nudge.js). Its copy is translated in the frontend packs and generated
 // into nudge-copy.js, so every language the app speaks has it — unlike the strings above, which
-// predate that and fall back to English. de-CH is de with ß written ss, as in the frontend
+// are English only. de-CH is de with ß written ss, as in the frontend
 // (lib/i18n-core.js DERIVED_LOCALES).
 const nudgeCopyFor = lang => {
   if (lang === 'de-CH') {

@@ -53,6 +53,17 @@ export function writeState(dir, uid, S) {
   fs.writeFileSync(path.join(dir, 'state-' + uid + '.json'), JSON.stringify(S));
 }
 
+/* The sample history was written in July 2026, and the coach only reviews the last MAX_WEEKS
+ * weeks before today, so fixed dates aged out of every review on their own. `recent` moves a
+ * July 2026 fixture day by the same number of days for all of them, so 2026-07-20 always lands a
+ * week before today and the days keep their spacing and weekdays (the shift is whole weeks). */
+const DAY = 86400000;
+const shiftWeeks = Math.floor((Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()) - 7 * DAY - Date.UTC(2026, 6, 20)) / (7 * DAY));
+export function recent(d) {
+  const t = Date.parse(d + 'T00:00:00Z') + shiftWeeks * 7 * DAY;
+  return new Date(t).toISOString().slice(0, 10);
+}
+
 /** A profile that has consented and has some history — the usual starting point. */
 export function sampleState(over = {}) {
   return {
@@ -68,10 +79,10 @@ export function sampleState(over = {}) {
     week: { 1: 'r1', 3: 'r1', 5: 'r1' },
     dayPlan: {},
     exWeights: { '0001': { w: 20 } },
-    bodyweight: [{ d: '2026-07-01', w: 78 }, { d: '2026-07-20', w: 78.5 }],
+    bodyweight: [{ d: recent('2026-07-01'), w: 78 }, { d: recent('2026-07-20'), w: 78.5 }],
     customEx: [],
     workouts: [{
-      id: 'w1', d: '2026-07-20', name: 'Full body A', start: 1000, end: 1000 + 45 * 60000, vol: 600, prs: [],
+      id: 'w1', d: recent('2026-07-20'), name: 'Full body A', start: 1000, end: 1000 + 45 * 60000, vol: 600, prs: [],
       entries: [{
         id: '0001', target: { sets: 3, reps: 10, weight: 20 },
         sets: [{ w: 20, r: 10, done: true, rpe: 9.5 }, { w: 20, r: 9, done: true, rpe: 10 }, { w: 20, r: 8, done: true, rpe: 10 }]

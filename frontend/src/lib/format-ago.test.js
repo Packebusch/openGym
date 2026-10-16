@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { fmtAgo, fmtDaysAgo, changeCount, setsWorkCount, fmtDur, fmtDate } from './format.js'
 import { _setLangState } from './i18n-core.js'
-import ar from '../locales/ar.js'
-import uk from '../locales/uk.js'
+import de from '../locales/de.js'
 
 // "Last synced: …" in Settings — the platform words it, in the UI language (en-GB here).
 describe('fmtAgo', () => {
@@ -38,14 +37,13 @@ describe('setsWorkCount', () => {
   })
 
   it('and the packs carry it', () => {
-    _setLangState('uk', uk, null, null)
-    expect(setsWorkCount(1, 1)).toBe(uk['{0} set · {1} work'].replace('{0}', '1').replace('{1}', '1'))
-    expect(uk['{0} set · {1} work']).not.toBe(uk['{0} sets · {1} work'])
+    _setLangState('de', de, null, null)
+    expect(setsWorkCount(1, 1)).toBe('1 Satz · 1 Arbeit')
+    expect(de['{0} set · {1} work']).not.toBe(de['{0} sets · {1} work'])
   })
 })
 
-// A session's length in the UI language. The units were Latin letters in every pack, so an
-// Arabic or Ukrainian History row read "34 min" and "1h 5m" in the middle of its own script.
+// A session's length in the UI language, in the pack's own units.
 describe('fmtDur', () => {
   afterEach(() => _setLangState('en', {}, null, null))
 
@@ -55,12 +53,9 @@ describe('fmtDur', () => {
   })
 
   it('uses each pack\'s own units', () => {
-    _setLangState('ar', ar, null, null)
-    expect(fmtDur(34 * 60000)).toBe('34 دقيقة')
-    expect(fmtDur(65 * 60000)).toBe('1 ساعة 5 دقيقة')
-    _setLangState('uk', uk, null, null)
-    expect(fmtDur(34 * 60000)).toBe('34 хв')
-    expect(fmtDur(65 * 60000)).toBe('1 год 5 хв')
+    _setLangState('de', de, null, null)
+    expect(fmtDur(34 * 60000)).toBe('34 Min.')
+    expect(fmtDur(65 * 60000)).toBe('1 Std. 5 Min.')
   })
 })
 

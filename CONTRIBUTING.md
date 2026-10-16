@@ -51,10 +51,9 @@ cd mcp && npm test
   session back, belongs in a pure helper in `src/lib` with a test beside it. These rules are easy
   to get subtly wrong and nearly impossible to check by clicking; the progression engine has had
   real bugs that only a test caught.
-- **New UI strings go into every locale** in `frontend/src/locales/`. English is the source
-  language and has no file. `node scripts/check-locales.mjs` (run in CI) flags a key that is
-  missing, blank or has lost a `{n}` placeholder. Portuguese (Brazil) inherits from Portuguese
-  (Portugal) and has its own guard test.
+- **New UI strings get a German translation** in `frontend/src/locales/de.js`. English is the
+  source language and has no file. `node scripts/check-locales.mjs` (run in CI) flags a key that
+  is blank or has lost a `{n}` placeholder.
 
 ## Using AI tools
 
@@ -85,8 +84,7 @@ should come as a GitHub pull request.
 ## Good first issues
 
 - More starter plans
-- Exercise translations: any language in `catalogue/i18n/` with gaps, or a new one
-  (see [catalogue/README.md](catalogue/README.md#translating))
+- German exercise translations: gaps in `catalogue/i18n/de.json` (see [catalogue/README.md](catalogue/README.md#translating))
 - Percentage or training-max programming (5/3/1 style) on top of the progression engine in
   `src/lib/progression.js`; the policy interface is already there
 - Accessibility passes on the workout and chart screens

@@ -34,18 +34,18 @@ describe('instance default language', () => {
     expect(shown()).toBe('en')   // nothing to go on before the config
     const before = clone(useStore.getState().S)
 
-    api.mockResolvedValueOnce({ invite_only: false, allow_guest: true, default_lang: 'pt-BR' })
+    api.mockResolvedValueOnce({ invite_only: false, allow_guest: true, default_lang: 'de-CH' })
     await useStore.getState().refreshConfig()
-    expect(shown()).toBe('pt-BR')
+    expect(shown()).toBe('de-CH')
     expect(useStore.getState().S).toEqual(before)
   })
 
   it('the next boot uses the default this device last saw, before the config answers', async () => {
     nav(['de-DE'])
-    api.mockResolvedValueOnce({ invite_only: false, default_lang: 'pt-BR' })
+    api.mockResolvedValueOnce({ invite_only: false, default_lang: 'de-CH' })
     await useStore.getState().refreshConfig()
     useStore.setState({ S: freshState(), config: null })
-    expect(shown()).toBe('pt-BR')   // not the browser's German first
+    expect(shown()).toBe('de-CH')   // not the browser's plain German first
     // An instance known to have none: the browser's language at once.
     api.mockResolvedValueOnce({ invite_only: false })
     await useStore.getState().refreshConfig()
@@ -61,13 +61,13 @@ describe('instance default language', () => {
 
   it('an existing copy with lang "en" and no mark is left in English', () => {
     nav(['de-DE'])
-    useStore.setState({ S: { ...clone(DEF), lang: 'en' }, config: { default_lang: 'pt-BR' } })
+    useStore.setState({ S: { ...clone(DEF), lang: 'en' }, config: { default_lang: 'de-CH' } })
     expect(shown()).toBe('en')
   })
 
   it('a language picked in Settings wins over DEFAULT_LANG from then on', () => {
-    useStore.setState({ S: freshState(), config: { default_lang: 'pt-BR' } })
-    expect(shown()).toBe('pt-BR')
+    useStore.setState({ S: freshState(), config: { default_lang: 'de-CH' } })
+    expect(shown()).toBe('de-CH')
     // What the Settings picker does.
     useStore.getState().update(s => { s.lang = 'en'; s.langAuto = false })
     expect(shown()).toBe('en')

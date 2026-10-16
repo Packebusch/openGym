@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **The gym check-in is gone.** The Home card, the check-in screen with its membership QR codes,
+  the camera scanner and its Settings switch are removed, along with the two scanner packages
+  (`jsqr`, `@capacitor-mlkit/barcode-scanning`). Cards already saved stay in your profile data, so
+  sync and backups keep them; they are no longer shown.
+- **English and German only.** The other seventeen languages are removed, with their interface
+  packs, exercise names and instructions. German (and Swiss German, derived from it) stays. A
+  profile set to a removed language opens in English.
+
 ## v1.4.0 (2026-10-09)
 
 The biggest update openGym has had: a new exercise database with 5,632 exercises and new

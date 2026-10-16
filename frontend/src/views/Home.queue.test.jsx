@@ -342,13 +342,13 @@ describe('Home: your own loop', () => {
   it('is called Rotation in the language on screen, whatever an older save kept as its name', async () => {
     const rot = { id: 'rot', sequence: ['d1', 'd2'], label: 'Rotation' }
     try {
-      await setLang('ar')
+      await setLang('de')
       setS({ rotation: rot, scheduleMode: 'rotation', queue: queue({ ids: ['d1', 'd2'], label: 'Rotation', rotationId: 'rot' }) })
       mount()
-      expect(host.querySelector('.queue .row .small').textContent).toBe('التناوب')
+      expect(host.querySelector('.queue .row .small').textContent).toBe('Rotation')
       setS({ rotation: { ...rot, label: '' }, scheduleMode: 'rotation', queue: queue({ ids: ['d1', 'd2'], label: '', rotationId: 'rot' }) })
       mount()
-      expect(host.querySelector('.queue .row .small').textContent).toBe('التناوب')
+      expect(host.querySelector('.queue .row .small').textContent).toBe('Rotation')
     } finally { await act(() => setLang('en')) }
     // A coach's week keeps the name its planner gave it.
     setS()

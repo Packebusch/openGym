@@ -8,7 +8,7 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
-import { startFlow } from '../sheets.jsx'
+import { startFlow, sessionPreviewSheet } from '../sheets.jsx'
 import { todayISO, isoOf, fmtDate } from '../lib/format.js'
 import Home from './Home.jsx'
 import { setLang } from '../lib/i18n.js'
@@ -16,7 +16,7 @@ import { setLang } from '../lib/i18n.js'
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
-  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '',
+  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', sessionPreviewSheet: vi.fn(),
 }))
 
 const routines = [
@@ -38,7 +38,7 @@ const logged = id => {
 let host, root
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  startFlow.mockClear()
+  startFlow.mockClear(); sessionPreviewSheet.mockClear()
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
@@ -91,14 +91,15 @@ describe('Home — coach week progress row', () => {
     expect(todayTitle()).toBe('US W1 D2')
   })
 
-  it('tapping an undone chip starts that routine alone, in any order; a done chip does nothing', () => {
+  it('tapping an undone chip shows that routine alone, in any order, with Start on the sheet; a done chip does nothing', () => {
     setS({ workouts: [logged('d1')] })
     mount()
     act(() => { chips()[2].click() })
-    expect(startFlow).toHaveBeenCalledTimes(1)
-    expect(startFlow).toHaveBeenCalledWith(['d3'])
+    expect(sessionPreviewSheet).toHaveBeenCalledTimes(1)
+    expect(sessionPreviewSheet).toHaveBeenCalledWith(['d3'])
     act(() => { chips()[0].click() })
-    expect(startFlow).toHaveBeenCalledTimes(1)
+    expect(sessionPreviewSheet).toHaveBeenCalledTimes(1)
+    expect(startFlow).not.toHaveBeenCalled()
   })
 
   it('a session in progress wins over a chip tap, as on the today row', () => {
@@ -106,6 +107,7 @@ describe('Home — coach week progress row', () => {
     mount()
     act(() => { chips()[1].click() })
     expect(startFlow).not.toHaveBeenCalled()
+    expect(sessionPreviewSheet).not.toHaveBeenCalled()
   })
 
   it('before startsOn it says when the week starts, and the today row points at that day', () => {
@@ -279,12 +281,12 @@ describe('Home — a session pinned to a day', () => {
     expect(status()).toBe('Next: US W1 D2 · ' + fmtDate(daysFromToday(1), true))
   })
 
-  it('tapping a pinned chip starts that routine alone, today', () => {
+  it('tapping a pinned chip shows that routine alone, to start today', () => {
     setS({ dayPlan: { [daysFromToday(2)]: 'd1' } })
     mount()
     act(() => { chips()[0].click() })
-    expect(startFlow).toHaveBeenCalledTimes(1)
-    expect(startFlow).toHaveBeenCalledWith(['d1'])
+    expect(sessionPreviewSheet).toHaveBeenCalledTimes(1)
+    expect(sessionPreviewSheet).toHaveBeenCalledWith(['d1'])
   })
 })
 

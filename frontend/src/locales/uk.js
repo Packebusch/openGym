@@ -2238,4 +2238,9 @@ export default {
   'Your sports watch, calling you back.': 'Ваш спортивний годинник кличе вас назад.',
   'Coach wants you back on the bar.': 'Тренер чекає вас назад біля штанги.',
   'Gentle, for headphones or a quiet room.': 'Тихий, для навушників або спокійної кімнати.',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+ще {0}',
+  'Target goes up today': 'Ціль сьогодні зростає',
+  'Deload today: target comes down': 'Сьогодні розвантаження: ціль знижується',
+  'See exercises': 'Переглянути вправи',
 }

@@ -102,11 +102,19 @@ describe('the Finish sheet', () => {
     act(() => finishWorkoutSheet({ onDiscard: vi.fn() }))
     const host = sheetText()
     expect(host.querySelector('h3').textContent).toBe('Finish workout?')
-    expect([...host.querySelectorAll('.menu-item .tt')].map(e => e.textContent)).toEqual(['Finish and save', 'Discard workout'])
+    expect([...host.querySelectorAll('.menu-item .tt')].map(e => e.textContent)).toEqual(['Finish and save', 'Add session note', 'Discard workout'])
     expect(host.querySelector('.menu-item.danger').textContent).toContain('Discard workout')
     tapItem(host, 'Finish and save')
     expect(S().active).toBeNull()
     expect(S().workouts).toHaveLength(1)
+  })
+
+  it('offers the session note where you wrap up, and says Edit once there is one', () => {
+    install([{ w: 40, r: 5, done: true }])
+    act(() => { S().active.note = 'Felt strong' })
+    act(() => finishWorkoutSheet({ onDiscard: vi.fn() }))
+    const host = sheetText()
+    expect([...host.querySelectorAll('.menu-item .tt')].map(e => e.textContent)).toContain('Edit session note')
   })
 
   it('keeps the early-finish wording as its message, and Discard calls the screen\'s own discard', () => {

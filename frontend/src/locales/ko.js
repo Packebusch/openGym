@@ -2241,4 +2241,9 @@ export default {
   'Your sports watch, calling you back.': '스포츠 시계가 다시 부르고 있어요.',
   'Coach wants you back on the bar.': '코치가 바 앞으로 돌아오래요.',
   'Gentle, for headphones or a quiet room.': '이어폰이나 조용한 곳에 어울려요.',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+{0}개 더',
+  'Target goes up today': '오늘 목표가 올라갑니다',
+  'Deload today: target comes down': '오늘은 디로드: 목표가 내려갑니다',
+  'See exercises': '운동 보기',
 }

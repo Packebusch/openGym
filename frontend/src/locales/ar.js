@@ -2296,4 +2296,9 @@ export default {
   'Your sports watch, calling you back.': 'ساعتك الرياضية تناديك للعودة.',
   'Coach wants you back on the bar.': 'المدرب يريدك أن تعود إلى البار.',
   'Gentle, for headphones or a quiet room.': 'هادئ، للسماعات أو لغرفة هادئة.',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+{0} أخرى',
+  'Target goes up today': 'الهدف يرتفع اليوم',
+  'Deload today: target comes down': 'تخفيف اليوم: الهدف ينخفض',
+  'See exercises': 'عرض التمارين',
 }

@@ -2234,4 +2234,9 @@ export default {
   'Your sports watch, calling you back.': '你的運動手錶在叫你回來。',
   'Coach wants you back on the bar.': '教練等你回到槓鈴前。',
   'Gentle, for headphones or a quiet room.': '輕柔，適合耳機或安靜的房間。',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+另外 {0} 個',
+  'Target goes up today': '今天目標提高',
+  'Deload today: target comes down': '今天減量：目標降低',
+  'See exercises': '查看動作',
 }

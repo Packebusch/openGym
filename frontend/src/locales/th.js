@@ -2252,4 +2252,9 @@ export default {
   'Your sports watch, calling you back.': 'นาฬิกาสปอร์ตเรียกคุณกลับมาแล้ว',
   'Coach wants you back on the bar.': 'โค้ชอยากให้คุณกลับมาที่บาร์',
   'Gentle, for headphones or a quiet room.': 'เบา ๆ สำหรับหูฟังหรือห้องที่เงียบ',
+  // --- session preview (Home today row, Start screen) ---
+  '+{0} more': '+อีก {0}',
+  'Target goes up today': 'วันนี้เป้าหมายเพิ่มขึ้น',
+  'Deload today: target comes down': 'วันนี้ดีโหลด: เป้าหมายลดลง',
+  'See exercises': 'ดูท่าออกกำลังกาย',
 }

@@ -8,7 +8,8 @@ import Home from './Home.jsx'
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
-  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', openDaySheet: vi.fn(), weighInsSheet: vi.fn(),
+  calendarSheet: vi.fn(), startFlow: vi.fn(), startSheet: vi.fn(), bwDeltaColor: () => '', openDaySheet: vi.fn(), weighInsSheet: vi.fn(),
+  menuSheet: vi.fn(), moveSessionSheet: vi.fn(), sessionPreviewSheet: vi.fn(),
 }))
 
 let host, root
@@ -20,9 +21,11 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => root.unmount()); host.remove() })
 
-const mountWith = showWeightCard => {
+// The card shows up once there is a curve to draw: two weigh-ins (design audit, proposal 3).
+const TWO = [{ d: '2026-01-01', w: 80, t: 1 }, { d: '2026-01-02', w: 79, t: 2 }]
+const mountWith = (showWeightCard, bodyweight = TWO) => {
   useStore.setState(s => ({
-    S: { ...s.S, routines: [], workouts: [], bodyweight: [], dayPlan: {}, week: {}, active: null, showWeightCard },
+    S: { ...s.S, routines: [], workouts: [], bodyweight, dayPlan: {}, week: {}, active: null, showWeightCard },
     user: null,
   }))
   act(() => root.render(<Home />))
@@ -42,6 +45,14 @@ describe('Home body-weight card preference', () => {
 
   it('hides only the Home card when disabled', () => {
     mountWith(false)
+    expect(weightHeading()).toBeFalsy()
+  })
+
+  it('waits for a second weigh-in: one point is not a curve', () => {
+    mountWith(true, [])
+    expect(weightHeading()).toBeFalsy()
+    act(() => root.unmount()); root = createRoot(host)
+    mountWith(true, TWO.slice(0, 1))
     expect(weightHeading()).toBeFalsy()
   })
 })

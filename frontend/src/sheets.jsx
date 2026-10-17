@@ -4,7 +4,7 @@ import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf, smOf, searchExercises, similarExercises, exOr, isAssisted, betterWeight, beatsWeight, isCustomEx } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile, profileEquipment, ACC_V } from './lib/equipment.js'
 import { fmtDate, fmtDaysAgo, fmtDateRange, fmtNum, fmtPlate, exerciseNameText, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, exCount, routineCount, setsWorkCount, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRoutineIds, workoutDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, sessionSections, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRoutineIds, effectiveRoutines, workoutDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, sessionSections, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, withLoadKind, loadKindFor, baseWeightFor, dropGrid } from './lib/plates.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
@@ -23,7 +23,7 @@ import { durationSheet } from './components/DurationWheel.jsx'
 import { SG_NAME_MAX } from './lib/superset-meta.js'
 import { REST_MAX, fmtRest } from './lib/duration.js'
 import Icon from './components/Icon.jsx'
-import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberField, MultiSelectRow, ActionGroup } from './components/ui.jsx'
+import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberField, MultiSelectRow, ActionGroup, ListItem } from './components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
@@ -66,6 +66,7 @@ import { workoutText } from './lib/workout-text.js'
 import { workoutCardModel, layoutWorkoutCard, drawWorkoutCard, viewAspect, CARD_FONT } from './lib/workout-card.js'
 import { copyText } from './lib/clipboard.js'
 import { queueRemaining, pinState } from './lib/queue.js'
+import { moveSession, undoMove } from './lib/day-move.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
 
 const S = () => useStore.getState().S
@@ -2242,6 +2243,36 @@ function PlanImport({ bundle, close }) {
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
   </>
 }
+
+/* ============================ move a session (design audit, F5) ============================ */
+// The next seven days, each with what it already holds; a tap moves the session there and rests
+// the day it left, with an Undo on the toast (lib/day-move.js).
+function MoveSession({ iso, close }) {
+  const st = useStore(s => s.S)
+  const [id] = effectiveRoutineIds(st, iso)
+  const name = st.routines.find(r => r.id === id)?.name || ''
+  const days = []
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + i)
+    days.push(isoOf(d))
+  }
+  const go = to => {
+    let before = null
+    update(s => { before = moveSession(s, iso, to) })
+    close()
+    if (before) ui().toast(t('{0} planned for {1}', name, fmtDate(to)), { action: t('Undo'), onAction: () => update(s => undoMove(s, before)) })
+  }
+  return <>
+    <h3>{t('Move “{0}” to…', name)}</h3>
+    <div className="muted small" style={{ marginBottom: 'var(--sp-3)' }}>{t('{0} becomes a rest day.', fmtDate(iso, true))}</div>
+    <div className="list">{days.map(d => {
+      const there = effectiveRoutines(st, d).map(r => r.name)
+      return <ListItem key={d} icon="calendar" title={fmtDate(d, true)} chevron onClick={() => go(d)}
+        sub={there.length ? t('Replaces {0}', there.join(' + ')) : t('Rest day')} />
+    })}</div>
+  </>
+}
+export const moveSessionSheet = iso => ui().openSheet(close => <MoveSession iso={iso} close={close} />)
 
 /* ============================ day override / assign ============================ */
 function DayOverride({ iso, close }) {

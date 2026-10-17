@@ -1960,7 +1960,7 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   transition:background var(--fast);width:100%;text-align: start;cursor:pointer;
 }
 .today-row:active{background:var(--surface-3)}
-.today-row .lbl2{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--label-3)}
+.today-row .lbl2,.hero .lbl2{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--label-3)}
 .today-row .ttl{
   font-weight:500;font-size:17px;line-height:1.25;text-transform:capitalize;
   letter-spacing:-.012em;margin-top:2px;
@@ -2186,4 +2186,21 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .pv-move{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-xs);font-weight:500}
 .pv-move.up{color:var(--acc-text)}
 .pv-move.down{color:var(--goal)}
+
+/* ------------------------------------------------ today hero (design audit, 3) -- */
+.hero{display:flex;flex-direction:column;gap:var(--sp-3)}
+.hero.live{cursor:pointer}
+.hero-head{display:flex;align-items:center;gap:var(--sp-3)}
+.hero-head .lrow-i{width:40px;height:40px;border-radius:10px;font-size:22px}
+.hero-name{font-size:var(--fs-xl);font-weight:600;letter-spacing:-.021em;line-height:1.15}
+.hero .ss{color:var(--label-2);font-size:var(--fs-sm);margin-top:2px}
+.hero-lifts{display:flex;flex-direction:column;gap:6px;padding:var(--sp-3);border-radius:var(--r);background:var(--surface-2);cursor:pointer}
+.hero-lift{display:flex;align-items:baseline;gap:var(--sp-2);font-size:var(--fs-md);min-width:0}
+.hero-line{color:var(--label-2);font-size:var(--fs-sm);white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
+.hero-line .up{color:var(--acc-text);font-size:12px}
+.wk-arrow{width:44px;height:44px;font-size:15px}
+.streak-line{display:flex;align-items:center;gap:var(--sp-2);width:100%;margin-top:var(--sp-3);padding-top:var(--sp-3);
+  border-top:var(--hair) solid var(--sep);font-size:var(--fs-sm);color:var(--label-2);text-align:start;min-height:44px}
+.streak-line b{color:var(--label);font-weight:600}
+.streak-line .chev{margin-inline-start:auto}
 

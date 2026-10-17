@@ -16,7 +16,9 @@ import { tappable, useRevealActiveChip } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
 import { isFav, sortFavouritesFirst } from '../lib/favourites.js'
 
-export default function Library() {
+// The exercise library. A view of Plan now (design audit, proposal 8), where exercises are added
+// to routines: `embedded` drops the page title, which Plan's own header and switch stand in for.
+export default function Library({ embedded = false }) {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const [q, setQ] = useState('')
@@ -62,12 +64,13 @@ export default function Library() {
       <Thumb ex={e} />
       <div className="grow"><div className={`tt ${exerciseNameClass(e)}`}>{isFav(S, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</div><div className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</div></div>
       {best > 0 && <span className="tag acc">{fmtNum(best)}</span>}
-      <Button size="sm" variant="tinted" icon="plus" onClick={ev => { ev.stopPropagation(); addToRoutineSheet(e) }}>{t('Plan')}</Button>
+      <button className="iconbtn lib-add" aria-label={t('Add {0} to a routine', exerciseNameFor(e))} title={t('Add to a routine')}
+        onClick={ev => { ev.stopPropagation(); addToRoutineSheet(e) }}><Icon name="plusCircle" /></button>
     </div>
   }
 
   return <>
-    <div className="hdr lib-hdr"><div><h1>{t('Exercises')}</h1></div>
+    <div className={'hdr lib-hdr' + (embedded ? ' embedded' : '')}>{!embedded && <div><h1>{t('Exercises')}</h1></div>}
       <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => nav('/muscles')}>{t('By muscle')}</Button>
       <div className="sub lib-count">{ownCount
         ? tn('{1} animated exercises + 1 of your own', '{1} animated exercises + {0} of your own', ownCount, EXDB.length)

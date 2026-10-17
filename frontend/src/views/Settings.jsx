@@ -44,7 +44,6 @@ import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } fro
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
 import { PAGES, ROOT_GROUPS, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
-import { goBack } from '../lib/nav.js'
 
 /* Settings (v1.3.11). The root is one screen: an account card, eleven rows that each open a page
    (/settings/<page>), and a search over every row. Rare things live one level further down
@@ -905,7 +904,7 @@ export default function Settings({ page = null, find = null, via = null }) {
         {/* Named by what it says ("Settings", "Workout"), so a voice command for the visible
             word finds it; the chevron is hidden from assistive tech. */}
         <button className="sp-back" onClick={back}>
-          <Icon name="chevronLeft" /><span>{parent ? t(PAGES[parent].title) : t('Settings')}</span>
+          <Icon name="chevronLeft" /><span>{parent ? t(PAGES[parent].title) : t('You')}</span>
         </button>
         <h1 className="sp-title">{t(PAGES[page].title)}</h1>
       </div>
@@ -915,13 +914,13 @@ export default function Settings({ page = null, find = null, via = null }) {
 
   /* ---------------- the root ---------------- */
   return <SettingsRoot ctx={ctx} preview={preview} open={open} user={user} sync={sync}
-    home={() => goBack('/home')} go={(hit) => {
+    go={(hit) => {
       if (hit.page === 'coach') { nav('/coach/setup'); return }
       nav('/settings/' + hit.page, hit.isPage ? undefined : { state: hit.via ? { find: hit.title, via: hit.via } : { find: hit.title } })
     }} />
 }
 
-function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
+function SettingsRoot({ ctx, preview, open, user, sync, go }) {
   // The router's key for this history entry (what useLocation().key reads), taken once.
   const [key] = useState(() => window.history.state?.key || null)
   const [q, setQ] = useState(() => (key && lastQuery.key === key ? lastQuery.q : ''))
@@ -936,11 +935,10 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
     : MOBILE ? { title: t('This phone'), sub: t('All data stays on this phone') }
     : { title: t('Guest'), sub: t('Your data lives on this device. Sign in to sync.') }
   const initial = user && !DEMO ? String(user.name || '?').trim().charAt(0).toUpperCase() : null
+  // The You tab (design audit, proposal 8): a tab of its own now, so no way back to anywhere —
+  // the tab bar is the way out, as on every other tab.
   return <div className="narrow">
-    <div className="sp-nav">
-      <button className="sp-back" onClick={home} aria-label={t('Home')}><Icon name="chevronLeft" /><span>{t('Home')}</span></button>
-    </div>
-    <h1 className="sp-root-title">{t('Settings')}</h1>
+    <div className="hdr"><div><h1>{t('You')}</h1><div className="sub">{t('Account, settings and your data')}</div></div></div>
     <div className="sp-search">
       <SearchField value={q} onChange={e => set(e.target.value)} onClear={() => set('')}
         placeholder={t('Search…')} aria-label={t('Search settings')} inputMode="search" enterKeyHint="search" autoComplete="off" />

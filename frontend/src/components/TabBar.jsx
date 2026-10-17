@@ -20,8 +20,9 @@ function Tab({ active, icon, label, onClick, dot }) {
   )
 }
 
-// Screens without a tab of their own light the tab they are opened from.
-const PARENT = { history: 'stats', 'structural-balance': 'stats', measurements: 'stats', 'progress-photos': 'stats', settings: 'home', muscles: 'library', coach: 'plan' }
+// Screens without a tab of their own light the tab they are opened from. Exercises lives under
+// Plan now, where exercises are added; Settings is the You tab (design audit, proposal 8).
+const PARENT = { history: 'stats', 'structural-balance': 'stats', measurements: 'stats', 'progress-photos': 'stats', library: 'plan', muscles: 'plan', coach: 'plan', admin: 'settings' }
 
 // How long a press on Start has to be held to skip the Start sheet and begin today's plan.
 export const LONG_PRESS_MS = 500
@@ -32,7 +33,7 @@ export default function TabBar({ onStart, onQuickStart }) {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const isGuest = useStore(s => s.isGuest())
-  // With the connection banner switched off, a sync problem shows as a dot on Home, the tab
+  // With the connection banner switched off, a sync problem shows as a dot on You, the tab
   // Settings lives under (#369, #330).
   const trouble = useConnectionTrouble()
   const held = useRef({ timer: 0, fired: 0 })
@@ -66,7 +67,7 @@ export default function TabBar({ onStart, onQuickStart }) {
 
   return (
     <nav id="tabbar">
-      <Tab active={on('home')} icon="house" label={t('Home')} dot={trouble} onClick={() => nav('/home')} />
+      <Tab active={on('home')} icon="house" label={t('Today')} onClick={() => nav('/home')} />
       <Tab active={on('plan')} icon="calendar" label={t('Plan')} onClick={() => nav('/plan')} />
       {/* On the workout screen itself there is nothing to resume, so the button reads as the
           tab it is and stays lit (#29); anywhere else it brings you back to the exercise you
@@ -83,8 +84,8 @@ export default function TabBar({ onStart, onQuickStart }) {
         {running ? <span className="tab-time"><Elapsed start={S.active.start} /></span>
           : <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Start')}</span>}
       </button>
-      <Tab active={on('stats')} icon="chart" label={t('Stats')} onClick={() => nav('/stats')} />
-      <Tab active={on('library')} icon="dumbbell" label={t('Exercises')} onClick={() => nav('/library')} />
+      <Tab active={on('stats')} icon="chart" label={t('Progress')} onClick={() => nav('/stats')} />
+      <Tab active={on('settings')} icon="personCircle" label={t('You')} dot={trouble} onClick={() => nav('/settings')} />
     </nav>
   )
 }

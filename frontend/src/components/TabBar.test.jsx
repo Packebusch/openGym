@@ -61,10 +61,10 @@ describe('the tab bar across a store write', () => {
   })
 })
 
-// Settings → "Show connection status" off (#369, #330): a stuck sync shows as a dot on Home, the
-// tab Settings opens from, and the tab's name says it.
-describe('the connection dot on Home', () => {
-  const home = () => tabs()[0]
+// Settings → "Show connection status" off (#369, #330): a stuck sync shows as a dot on You, the
+// tab Settings lives under, and the tab's name says it.
+describe('the connection dot on You', () => {
+  const home = () => tabs()[4]
   it('is there for a sync problem only while the banner is switched off', () => {
     const original = useStore.getState().sync
     try {
@@ -73,7 +73,7 @@ describe('the connection dot on Home', () => {
       expect(home().querySelector('.tab-dot')).toBeNull()
       act(() => { useStore.getState().update(s => { s.connStatus = false }, false) })
       expect(home().querySelector('.tab-dot')).not.toBeNull()
-      expect(home().getAttribute('aria-label')).toBe('Home, Connection problem')
+      expect(home().getAttribute('aria-label')).toBe('You, Connection problem')
       act(() => { useStore.setState({ sync: { status: 'ok', lastError: null, pending: false } }) })
       expect(home().querySelector('.tab-dot')).toBeNull()
       expect(home().getAttribute('aria-label')).toBeNull()
@@ -81,15 +81,16 @@ describe('the connection dot on Home', () => {
   })
 })
 
-// v1.3.11 icon sweep: one icon per concept. Every tab carries its name under the icon, Start is a
-// play button whether or not a session runs, and Exercises is the dumbbell (no more generic list).
+// v1.3.11 icon sweep: one icon per concept. Every tab carries its name under the icon, and Start is
+// a play button whether or not a session runs. Design audit, proposal 8: Today · Plan · Start ·
+// Progress · You — Exercises moved under Plan, Settings got the last tab.
 describe('the tab icons and labels', () => {
   const icon = el => el.querySelector('svg')?.getAttribute('data-icon')
   const label = el => el.querySelector('span:last-child').textContent
   it('labels every tab and uses one icon per concept', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
-    expect(tabs().map(icon)).toEqual(['house', 'calendar', 'play', 'chart', 'dumbbell'])
-    expect(tabs().map(label)).toEqual(['Home', 'Plan', 'Start', 'Stats', 'Exercises'])
+    expect(tabs().map(icon)).toEqual(['house', 'calendar', 'play', 'chart', 'personCircle'])
+    expect(tabs().map(label)).toEqual(['Today', 'Plan', 'Start', 'Progress', 'You'])
 
     act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0 } }, false) })
     expect(icon(tabs()[2])).toBe('play')

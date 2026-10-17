@@ -6,7 +6,7 @@ import { goBack } from '../lib/nav.js'
 
 export default function Muscles() {
   return <>
-    <div className="hdr"><button className="iconbtn" onClick={() => goBack('/library')} aria-label={t('Exercises')}><Icon name="chevronLeft" /></button>
+    <div className="hdr"><button className="iconbtn" onClick={() => goBack('/plan')} aria-label={t('Exercises')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 12 }}><h1>{t('Explore muscles')}</h1><div className="sub">{t('Choose a muscle to see exercises that train it.')}</div></div></div>
 
     <MuscleExplorer onDetail={exerciseDetailSheet} onPlan={addToRoutineSheet} />

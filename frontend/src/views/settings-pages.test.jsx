@@ -309,7 +309,7 @@ describe('the pages', () => {
 
   it('a sub-page names where back goes; Fine-tuning goes back to Workout', () => {
     mount('alerts')
-    expect(host.querySelector('.sp-back').textContent).toBe('Settings')
+    expect(host.querySelector('.sp-back').textContent).toBe('You')
     expect(host.querySelector('.sp-back').hasAttribute('aria-label')).toBe(false)   // its name is the word it shows
     expect(host.querySelector('.sp-title').textContent).toBe('Timer alerts')
     mount('advanced')

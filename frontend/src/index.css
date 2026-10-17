@@ -2204,6 +2204,10 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .streak-line b{color:var(--label);font-weight:600}
 .streak-line .chev{margin-inline-start:auto}
 
+/* ------------------------------------------------ library inside Plan (design audit, 8) -- */
+.lib-hdr.embedded{margin-top:var(--sp-3)}
+.lib-add{color:var(--acc-text);font-size:22px;flex:none}
+
 /* ------------------------------------------------ first run (design audit, 10) -- */
 .first-run{padding-top:calc(var(--sat) + var(--sp-4));padding-bottom:calc(var(--sab) + var(--sp-6))}
 .first-run h1{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.02em;margin:var(--sp-4) 0 var(--sp-2)}

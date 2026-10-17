@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Library from './Library.jsx'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { DAYN, DAYS, weekOrder, weekStartOf, uid, exCount, routineCount, todayISO, fmtDate } from '../lib/format.js'
@@ -27,12 +28,19 @@ import {
   chooseRotation, chooseFixedWeek,
 } from '../lib/rotation.js'
 
-// Plan has two views (v1.3.11): Schedule (how you train, and when) and Routines (what you
-// train). The last one you looked at comes back: a per-device convenience, never synced, so it
+// Plan has three views: Schedule (how you train, and when), Routines (what you train) and
+// Exercises (what there is to train — the library, once a tab of its own; design audit, 8). The last one you looked at comes back: a per-device convenience, never synced, so it
 // lives in this browser's storage and not in S.
 export const PLAN_VIEW_KEY = 'gym_plan_view'
+const VIEWS = ['schedule', 'routines', 'exercises']
+const linkedView = () => {
+  try {
+    const v = new URLSearchParams(String(globalThis.location?.hash || '').split('?')[1] || '').get('view')
+    return VIEWS.includes(v) ? v : null
+  } catch { return null }
+}
 const readView = () => {
-  try { return localStorage.getItem(PLAN_VIEW_KEY) === 'routines' ? 'routines' : 'schedule' } catch { return 'schedule' }
+  try { const v = localStorage.getItem(PLAN_VIEW_KEY); return VIEWS.includes(v) ? v : 'schedule' } catch { return 'schedule' }
 }
 
 /* Undo for Plan's two removals (v1.3.11). Both go through the store's normal update, so sync
@@ -129,7 +137,8 @@ export default function Plan() {
   const coachMode = useStore(s => s.coachLocal?.mode)
   const user = useStore(s => s.user)
   const fileRef = useRef(null)
-  const [view, setViewState] = useState(readView)
+  // A link may name the view (#/plan?view=exercises: the old Exercises tab's address lands here).
+  const [view, setViewState] = useState(() => linkedView() || readView())
   const setView = v => {
     setViewState(v)
     try { localStorage.setItem(PLAN_VIEW_KEY, v) } catch { /* private mode: the view just isn't remembered */ }
@@ -167,9 +176,9 @@ export default function Plan() {
     </div>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
     <Segmented className="plan-views" value={view} onChange={setView}
-      options={[{ value: 'schedule', label: t('Schedule') }, { value: 'routines', label: t('Routines') }]} />
-    {view === 'routines'
-      ? <Routines S={S} update={update} nav={nav} />
+      options={[{ value: 'schedule', label: t('Schedule') }, { value: 'routines', label: t('Routines') }, { value: 'exercises', label: t('Exercises') }]} />
+    {view === 'exercises' ? <Library embedded />
+      : view === 'routines' ? <Routines S={S} update={update} nav={nav} />
       : <Schedule S={S} update={update} nav={nav} mode={mode} />}
   </div>
 }

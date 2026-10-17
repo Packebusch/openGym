@@ -13,7 +13,7 @@ import { supersetMeta, setSupersetMeta } from '../lib/superset-meta.js'
 import { fmtRest } from '../lib/duration.js'
 import Icon from '../components/Icon.jsx'
 import { glyphOf } from '../lib/glyphs.js'
-import { Button, Row, SelectRow, Switch } from '../components/ui.jsx'
+import { Button, Row, SelectRow, Switch, ActionGroup } from '../components/ui.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
 import { workoutControls } from '../lib/workout-controls.js'
 import { copyRoutine, deleteRoutine, replaceSlotExercise } from '../lib/routines.js'
@@ -582,20 +582,20 @@ export default function RoutineEdit() {
     })()}
 
     <div className="small dim row" style={{ margin: '10px 2px', gap: 5 }}><Icon name="link" style={{ fontSize: 13 }} />{t('Tap the link button on an exercise to superset it with the one above. You’ll do them back-to-back.')}</div>
-    <Button onClick={() => {
-      const copy = copyRoutine(r, t('Copy'))
-      update(s => { s.routines.push(copy) })
-      nav('/plan/r/' + copy.id)
-    }}>{t('Copy routine')}</Button>
-    <div style={{ height: 10 }} />
-    <Button disabled={!r.ex.length} onClick={printRoutine}>{t('Print / Save as PDF')}</Button>
-    <div style={{ height: 10 }} />
-    <Button variant="danger" onClick={() => confirmSheet({
+    <ActionGroup items={[
+      { icon: 'copy', label: t('Copy routine'), chevron: true, onClick: () => {
+        const copy = copyRoutine(r, t('Copy'))
+        update(s => { s.routines.push(copy) })
+        nav('/plan/r/' + copy.id)
+      } },
+      { icon: 'note', label: t('Print / Save as PDF'), disabled: !r.ex.length, onClick: printRoutine },
+    ]} />
+    <ActionGroup items={[{ icon: 'trash', label: t('Delete routine'), danger: true, onClick: () => confirmSheet({
       title: t('Delete routine?'), message: t('“{0}” and its exercises will be removed.', r.name), confirmText: t('Delete'), danger: true,
       onConfirm: () => {
         update(s => { deleteRoutine(s, id) })
         nav('/plan')
       }
-    })}>{t('Delete routine')}</Button>
+    }) }]} />
   </div>
 }

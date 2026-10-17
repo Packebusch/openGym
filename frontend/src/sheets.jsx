@@ -23,7 +23,7 @@ import { durationSheet } from './components/DurationWheel.jsx'
 import { SG_NAME_MAX } from './lib/superset-meta.js'
 import { REST_MAX, fmtRest } from './lib/duration.js'
 import Icon from './components/Icon.jsx'
-import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberField, MultiSelectRow } from './components/ui.jsx'
+import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberField, MultiSelectRow, ActionGroup } from './components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
@@ -1026,11 +1026,11 @@ function ExerciseDetail({ ex, close }) {
     {descFor(ex) && <div className="exnote">{descFor(ex)}</div>}
     {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</div>}
     <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
-    {last && <Button icon="history" style={{ marginTop: 4 }} onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
-    {isCustomEx(ex) && <div className="row" style={{ gap: 8, marginTop: 8 }}>
-      <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
-      <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
-    </div>}
+    <ActionGroup items={[
+      last && { icon: 'history', label: t('History'), chevron: true, onClick: () => exerciseHistorySheet(ex.id) },
+      isCustomEx(ex) && { icon: 'pencil', label: t('Edit'), chevron: true, onClick: () => { close(); customExSheet(ex) } },
+      isCustomEx(ex) && { icon: 'trash', label: t('Delete'), danger: true, onClick: () => deleteCustomEx(ex, close) },
+    ]} />
     {modeOf({ id: ex.id }) === 'reps' && <>
       <h4 className="sec">{t('Plate loading')}</h4>
       <BarWeightEditor ex={ex} extra={t('You still log the total weight. This only feeds the plate line under each set.')} />
@@ -2030,12 +2030,14 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         Replace (#110) seeds this sheet with the slot it replaces, and saving puts the exercise
         into that slot. */}
     <Button variant="primary" disabled={progressionStepInvalid} onClick={save}>{saveLabel || (existing ? t('Save') : t('Add to routine'))}</Button>
-    {isCustomEx(ex) && <><div style={{ height: 8 }} /><Button icon="pencil" onClick={() => { close(); customExSheet(ex) }}>{t('Edit or delete this exercise')}</Button></>}
     {/* The routine editor's counterpart to a workout's Swap (#110): another exercise in this
         slot, with the slot's sets, reps, weight, rule and note kept (lib/routines.js). What was
         changed on this sheet and not saved is left behind, as closing it would. */}
-    {onReplace && <><div style={{ height: 8 }} /><Button icon="swap" onClick={() => { close(); onReplace() }}>{t('Replace exercise')}</Button></>}
-    {onDelete && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { close(); onDelete() }}>{t('Remove from routine')}</Button></>}
+    <ActionGroup items={[
+      onReplace && { icon: 'swap', label: t('Replace exercise'), chevron: true, onClick: () => { close(); onReplace() } },
+      isCustomEx(ex) && { icon: 'pencil', label: t('Edit or delete this exercise'), chevron: true, onClick: () => { close(); customExSheet(ex) } },
+    ]} />
+    <ActionGroup items={[onDelete && { icon: 'trash', label: t('Remove from routine'), danger: true, onClick: () => { close(); onDelete() } }]} />
   </>
 }
 export const exConfigSheet = (ex, existing, onSave, onDelete, routine, initial, onReplace, saveLabel) => ui().openSheet(close => <ExConfig ex={ex} existing={existing} initial={initial} onSave={onSave} onDelete={onDelete} onReplace={onReplace} routine={routine} saveLabel={saveLabel} close={close} />)
@@ -2612,20 +2614,6 @@ function WorkoutDetail({ w, close }) {
         filtering on `x.id !== undefined` took every other one of them with it. */}
     <ActionGroup items={[{ icon: 'trash', label: t('Delete workout'), danger: true, onClick: deleteWorkout }]} />
   </>
-}
-// A settings-style group of action rows: the menu sheet's look, but real buttons that stay on
-// this sheet, since most of them open another sheet over it rather than closing it.
-function ActionGroup({ title, items }) {
-  return <div className="menu-group grouped wd-group">
-    {title && <div className="menu-sec">{title}</div>}
-    <div className="list menu-list">
-      {items.map(it => <button key={it.label} type="button" className={'item menu-item' + (it.danger ? ' danger' : '')} onClick={it.onClick}>
-        <span className="lrow-i"><Icon name={it.icon} /></span>
-        <div className="grow"><div className="tt">{it.label}</div></div>
-        {it.chevron && <Icon name="chevronRight" className="menu-chev" />}
-      </button>)}
-    </div>
-  </div>
 }
 // "Share as image" (#453): the card lib/workout-card.js lays out, painted in the theme and accent
 // the app is showing right now, previewed before it goes anywhere. The muscle map is the finish

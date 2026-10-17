@@ -1354,6 +1354,9 @@ body.chips-dragging *{cursor:inherit}
 .menu-sec{font-size:13px;font-weight:600;color:var(--label-2);padding:0 6px 6px;letter-spacing:.005em}
 .menu-list .menu-item.accent .lrow-i{background:var(--acc);color:var(--on-acc)}
 .menu-chev{color:var(--label-3);font-size:14px;flex:none}
+/* ActionGroup (components/ui.jsx): grouped action rows at the foot of a sheet or page. */
+.act-group{margin-top:22px}
+.act-group+.act-group{margin-top:22px}
 [dir="rtl"] .menu-chev{transform:scaleX(-1)}
 .setextra{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px 32px}
 .setextra .chip.add{display:inline-flex;align-items:center;gap:4px;color:var(--acc)}
@@ -1811,7 +1814,6 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .wd-stats .tile .v{font-size:17px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 h4.sec.wd-sec{margin-top:18px}
 .wd-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 22px}
-.wd-group+.wd-group{margin-top:22px}
 .ss-card{
   border-radius:var(--r-lg);padding:14px;
   background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--acc-line);

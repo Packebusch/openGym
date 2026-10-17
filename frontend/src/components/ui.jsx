@@ -492,6 +492,26 @@ function require_ui() {
 
 /* ============================ buttons ============================ */
 
+// A settings-style group of action rows (the menu sheet's look, as real buttons) for the secondary
+// actions at the foot of a sheet or page, instead of a column of equal full-width buttons. Rows
+// that open another sheet or page carry a chevron. items: [{ icon, label, sub, onClick, danger,
+// disabled, chevron }], falsy entries skipped; a group left with none renders nothing.
+export function ActionGroup({ title, items, className = '' }) {
+  const list = items.filter(Boolean)
+  if (!list.length) return null
+  return <div className={'menu-group grouped act-group ' + className}>
+    {title && <div className="menu-sec">{title}</div>}
+    <div className="list menu-list">
+      {list.map(it => <button key={it.label} type="button" disabled={it.disabled}
+        className={'item menu-item' + (it.danger ? ' danger' : '') + (it.disabled ? ' disabled' : '')} onClick={it.onClick}>
+        <span className="lrow-i"><Icon name={it.icon} /></span>
+        <div className="grow"><div className="tt">{it.label}</div>{it.sub && <div className="ss">{it.sub}</div>}</div>
+        {it.chevron && <Icon name="chevronRight" className="menu-chev" />}
+      </button>)}
+    </div>
+  </div>
+}
+
 export function Button({ variant = 'plain', size, icon, trailingIcon, children, className = '', ...rest }) {
   return (
     <button className={`btn ${variant}${size ? ' ' + size : ''} ${className}`} {...rest}>

@@ -29,6 +29,9 @@ import TimerFlash from './components/TimerFlash.jsx'
 import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
+import FirstRun from './views/FirstRun.jsx'
+import { needsFirstRun } from './lib/first-run.js'
+import { DEMO } from './lib/demo.js'
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
@@ -185,7 +188,10 @@ function Shell() {
   }, [inWorkout])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding
+  // The first run (design audit, proposal 10) has the screen to itself, like the phone's own
+  // first-launch card. Never in the demo: that one boots with a history already.
+  const firstRun = !DEMO && ready && needsFirstRun(S)
+  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding || firstRun
 
   const authed = user || isGuest
   if (!ready && !authed) return (
@@ -202,7 +208,7 @@ function Shell() {
           re-mounts the boundary, so the tab bar is always a way out */}
       <div id="app" className="vfade" key={loc.pathname}>
         <ErrorBoundary>
-          {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
+          {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : firstRun ? <FirstRun /> : (
             <Routes>
               <Route path="/home" element={<Home />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the

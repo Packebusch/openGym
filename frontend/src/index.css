@@ -2204,3 +2204,19 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .streak-line b{color:var(--label);font-weight:600}
 .streak-line .chev{margin-inline-start:auto}
 
+/* ------------------------------------------------ first run (design audit, 10) -- */
+.first-run{padding-top:calc(var(--sat) + var(--sp-4));padding-bottom:calc(var(--sab) + var(--sp-6))}
+.first-run h1{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.02em;margin:var(--sp-4) 0 var(--sp-2)}
+.first-run .fr-lead{font-size:var(--fs-md);margin-bottom:var(--sp-3)}
+.fr-top{display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.fr-dots{display:flex;gap:6px}
+.fr-dots i{width:24px;height:4px;border-radius:2px;background:var(--surface-3)}
+.fr-dots i.on{background:var(--acc)}
+.fr-choice.on .tt{font-weight:600}
+.fr-choice.on .start-radio,.start-opt.on .start-radio{background:var(--acc);border-color:var(--acc)}
+.fr-choice .start-radio{width:24px;height:24px;border-radius:12px;flex:none;display:grid;place-items:center;
+  border:1.5px solid var(--label-3);font-size:14px;color:var(--on-acc)}
+.fr-badge{margin-inline-start:var(--sp-2);font-size:var(--fs-xs);vertical-align:middle}
+.fr-actions{display:flex;gap:var(--sp-2);margin-top:var(--sp-5)}
+.fr-actions>.btn{flex:1}
+

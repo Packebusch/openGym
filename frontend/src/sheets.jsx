@@ -172,6 +172,7 @@ const PLAN_COPY = {
   'full-body': () => ({ name: t('Full Body'), about: t('Three sessions, the whole body each time.') }),
   '5x5': () => ({ name: t('5×5'), about: t('Five sets of five on the main barbell lifts.') })
 }
+export const planCopy = id => PLAN_COPY[id]()
 
 // Adds the plan's routines (reusing one you already have under the same name) and puts them on
 // its weekdays. Existing routines are never touched

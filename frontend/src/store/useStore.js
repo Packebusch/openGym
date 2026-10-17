@@ -176,6 +176,9 @@ export const DEF = {
   // (lib/dumbbells.js). Single bells, lightest first. Kept per unit and stamped like the plates;
   // absent or empty = no list, and dumbbell lifts step by their increment as before.
   dumbbells: {},
+  // The kettlebells you own, per unit, shaped like the dumbbells (lib/dumbbells.js). Kettlebell
+  // lifts step and progress over these; absent or empty = their increment as before.
+  kettlebells: {},
   // Membership codes from the gym check-in this app used to have. The screen is gone, but the
   // list stays in the state so a profile that has some keeps them through sync and backups.
   gymCards: [],

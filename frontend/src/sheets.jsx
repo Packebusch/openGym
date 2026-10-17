@@ -35,7 +35,7 @@ import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } fr
 import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP, formulaOf, FORMULA_NAMES } from './lib/onerm.js'
 import { exerciseHistory } from './lib/exercise-history.js'
-import { isBellEx, dbLoadOf, dbLoadFor, withDbLoad, withMeaning, historyAs, entryDbLoad, currentDbLoad, isOneArm, ownedWeightsFor, dumbbellsOf, ownsDumbbells, withDumbbells, presetWeights, cleanWeights } from './lib/dumbbells.js'
+import { isBellEx, dbLoadOf, dbLoadFor, withDbLoad, withMeaning, historyAs, entryDbLoad, currentDbLoad, isOneArm, ownedWeightsFor, dumbbellsOf, ownsDumbbells, withDumbbells, kettlebellsOf, withKettlebells, presetWeights, cleanWeights } from './lib/dumbbells.js'
 import { policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS, MAX_TRIPLE_SETS, weightIncrement } from './lib/progression.js'
 import { normalizeRepRange } from './lib/rep-range.js'
 import { isBackoff, backoffWeights } from './lib/backoff.js'
@@ -874,12 +874,14 @@ export const plateInventorySheet = () => ui().openSheet(close => <PlateInventory
 // deloads, warm-ups, drops and the stepper of every dumbbell lift land on these; an empty list
 // puts them back on the increment. Tapping a weight takes it off, the field adds one, and the
 // quick fill writes the usual rack for the unit to edit from. Every change is stamped.
-function DumbbellInventorySheet({ close }) {
+// `kettlebell` edits the kettlebell list instead (S.kettlebells), the same way but without the
+// quick fill: nobody owns a rack of kettlebells in even steps.
+function DumbbellInventorySheet({ close, kettlebell = false }) {
   const st = useStore(s => s.S)
   const unit = st.unit === 'lb' ? 'lb' : 'kg'
-  const list = dumbbellsOf(st)
+  const list = kettlebell ? kettlebellsOf(st) : dumbbellsOf(st)
   const [draft, setDraft] = useState(null)
-  const save = ws => update(s => { s.dumbbells = withDumbbells(s, ws) })
+  const save = ws => update(s => { if (kettlebell) s.kettlebells = withKettlebells(s, ws); else s.dumbbells = withDumbbells(s, ws) })
   const preset = presetWeights(unit)
   const add = () => {
     const w = cleanWeights([draft])[0]
@@ -888,29 +890,34 @@ function DumbbellInventorySheet({ close }) {
     setDraft(null)
   }
   return <>
-    <h3>{t('Dumbbells')}</h3>
+    <h3>{kettlebell ? t('Kettlebells') : t('Dumbbells')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>
-      {t('The weights you own, one bell each. Progression, deloads, warm-ups and the + and − buttons of dumbbell lifts land only on these.')}
+      {kettlebell
+        ? t('The weights you own, one bell each. Progression, deloads, warm-ups and the + and − buttons of kettlebell lifts land only on these.')
+        : t('The weights you own, one bell each. Progression, deloads, warm-ups and the + and − buttons of dumbbell lifts land only on these.')}
     </div>
     {list.length > 0
       ? <div className="chips" style={{ flexWrap: 'wrap', overflow: 'visible', touchAction: 'auto', marginBottom: 12 }}>
         {list.map(w => <button key={w} className="chip on nocap" aria-label={t('Remove {0}', fmtPlate(w) + ' ' + unit)}
           onClick={() => save(list.filter(x => x !== w))}>{fmtPlate(w)} <Icon name="xmark" /></button>)}
       </div>
-      : <div className="small dim" style={{ marginBottom: 12 }}>{t('No list yet, so dumbbell lifts step by their increment as usual.')}</div>}
+      : <div className="small dim" style={{ marginBottom: 12 }}>{kettlebell
+        ? t('No list yet, so kettlebell lifts step by their increment as usual.')
+        : t('No list yet, so dumbbell lifts step by their increment as usual.')}</div>}
     <div className="row" style={{ gap: 8, marginBottom: 12 }}>
       <NumberField className="input" decimal value={draft ?? ''} onChange={v => setDraft(v)}
         aria-label={t('Weight ({0})', unit)} placeholder={t('Weight ({0})', unit)} onKeyDown={e => { if (e.key === 'Enter') add() }} />
       <Button icon="plus" onClick={add} style={{ flex: '0 0 auto', width: 'auto' }}>{t('Add')}</Button>
     </div>
-    <Button onClick={() => save(preset)} style={{ marginBottom: 8 }}>
+    {!kettlebell && <Button onClick={() => save(preset)} style={{ marginBottom: 8 }}>
       {t('Fill in {0} to {1} {2}, every {3}', fmtPlate(preset[0]), fmtPlate(preset.at(-1)), unit, fmtPlate(preset[1] - preset[0]))}
-    </Button>
+    </Button>}
     {list.length > 0 && <Button variant="danger" onClick={() => save([])} style={{ marginBottom: 8 }}>{t('Clear the list')}</Button>}
     <Button variant="primary" onClick={close}>{t('Done')}</Button>
   </>
 }
 export const dumbbellInventorySheet = () => ui().openSheet(close => <DumbbellInventorySheet close={close} />)
+export const kettlebellInventorySheet = () => ui().openSheet(close => <DumbbellInventorySheet close={close} kettlebell />)
 
 /* ============================ exercise detail ============================ */
 // Estimated 1RM for one exercise (issue #18): what the log already implies, plus a calculator

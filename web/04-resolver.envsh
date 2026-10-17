@@ -1,0 +1,10 @@
+#!/bin/sh
+# RESOLVER=auto: use the container's own nameserver (first line of /etc/resolv.conf) for nginx's
+# re-resolution of BACKEND, for runtimes whose DNS is not Docker's 127.0.0.11 (Railway, Podman).
+# An IPv6 address is bracketed, as nginx's resolver directive needs it.
+if [ "$RESOLVER" = "auto" ]; then
+  ns=$(awk '/^nameserver/ { print $2; exit }' /etc/resolv.conf)
+  case "$ns" in *:*) ns="[$ns]" ;; esac
+  export RESOLVER="${ns:-127.0.0.11}"
+  echo "04-resolver: RESOLVER=$RESOLVER"
+fi

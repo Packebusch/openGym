@@ -465,7 +465,9 @@ export function nextPrescription(S, cfg, routine) {
   const easier = weight => (assisted ? addStep(weight, inc, inc) : owned ? ownedDeload(owned, weight, DELOAD_FACTOR) : deloadTo(weight, inc))
   // At the heaviest bell there is nothing to raise to: the weight holds and the line says why.
   const topped = weight => !!owned && ownedUp(owned, weight) == null
-  const toppedOut = (weight, extra = {}) => ({ policy, kind: 'hold', weight, ...extra, why: ['You’ve outgrown the rack: {0} {1} is your heaviest dumbbell, so the weight stays.', weight, unit] })
+  const toppedOut = (weight, extra = {}) => ({ policy, kind: 'hold', weight, ...extra, why: EXIDX[cfg.id]?.eq === 'kettlebell'
+    ? ['You’ve outgrown the rack: {0} {1} is your heaviest kettlebell, so the weight stays.', weight, unit]
+    : ['You’ve outgrown the rack: {0} {1} is your heaviest dumbbell, so the weight stays.', weight, unit] })
 
 
   // The routine's own sessions of this exercise, or the exercise's whole history when the
@@ -641,7 +643,7 @@ export function nextPrescription(S, cfg, routine) {
         const perSide = isPerSide(cfg)
         const target1RM = deloadTarget1RM(w, Math.max(...rows), deloadFactorOf(cfg), perSide)
         const ideal = target1RM == null ? null : target1RM / (1 + (perSide ? bottom / 2 : bottom) / 30)
-        const grid = ideal == null ? [] : positiveGridAround(ideal, inc, w, true)
+        const grid = ideal == null ? [] : owned ? ownedAround(ideal, owned, w, true) : positiveGridAround(ideal, inc, w, true)
         if (grid.length) dw = grid.reduce((a, b) => (Math.abs(b - ideal) < Math.abs(a - ideal) ? b : a))
       }
       if (dw == null) dw = easier(w)
@@ -669,9 +671,14 @@ export function nextPrescription(S, cfg, routine) {
       return out('hold', w, [...got.slice(0, n - 1).map(() => top), aim], ['Same weight, aim for {0} reps on the last set.', aim])
     }
     if (n < setsMax) return out('up', w, [...got.map(() => top), bottom], ['{0} reps in every set! Add a set at {1} reps.', top, bottom])
-    return out('up', harder(w, inc), startRows(bottom), assisted
+    // Over owned bells the raise is to the next bell, whatever the jump, and at the heaviest
+    // there is none: the sets and reps reached hold and the line says why.
+    if (!assisted && topped(w)) return { ...out('hold', w, got), why: toppedOut(w).why }
+    const up = harder(w, inc)
+    const by = owned ? Math.round((up - w) * 100) / 100 : inc
+    return out('up', up, startRows(bottom), assisted
       ? ['Top of the range on all {0} sets. {1} {2} less help, back to {3} sets of {4}.', n, inc, unit, setsMin, bottom]
-      : ['Top of the range on all {0} sets. {1} {2} more, back to {3} sets of {4}.', n, inc, unit, setsMin, bottom])
+      : ['Top of the range on all {0} sets. {1} {2} more, back to {3} sets of {4}.', n, by, unit, setsMin, bottom])
   }
 
   if (policy === 'double') {

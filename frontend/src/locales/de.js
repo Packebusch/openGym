@@ -2245,4 +2245,6 @@ export default {
   'Target goes up today': 'Ziel steigt heute',
   'Deload today: target comes down': 'Deload heute: Ziel geht runter',
   'See exercises': 'Übungen ansehen',
+  'Plan for {0}': 'Für {0} planen',
+  'Start now': 'Jetzt starten',
 }

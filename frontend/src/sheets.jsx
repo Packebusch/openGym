@@ -2292,6 +2292,10 @@ function DayOverride({ iso, close }) {
         <div className="ss">{pinnedOn[r.id] && pinnedOn[r.id] !== iso ? fmtDate(pinnedOn[r.id], true) : exCount(r.ex.length)}</div>
         {exs.shown.length > 0 && <div className="pick-ex">{exs.shown.map(id => exerciseNameText(exOr(id))).join(' · ')}{exs.more ? ' · ' + t('+{0} more', exs.more) : ''}</div>}
         {sum.muscles.length > 0 && <div className="mchips">{sum.muscles.map(m => <span key={m} className="mchip capitalize">{t(MUSCLE_NAME[m] || m)}</span>)}</div>}
+        {/* The whole routine, with today's targets, before choosing it: the card only has room
+            for its first few exercises. Picking from there plans it the way tapping the card does. */}
+        {r.ex.length > 0 && <button type="button" className="pick-more" onClick={e => { e.stopPropagation(); sessionPreviewSheet([r.id], { iso, run: () => set(r.id) }) }}>
+          {t('See exercises')}<Icon name="chevronRight" /></button>}
       </div>
       {on && <Icon name="checkCircle" className="accent pick-on" />}
     </div>
@@ -2820,7 +2824,9 @@ export function startFlow(routineIds) {
 // screen's routines): each exercise with what it opens at today and whether the weight moved,
 // supersets together, and Start at the bottom. Built from lib/session-preview.js, which walks the
 // same path beginWorkout does, so the numbers here are the rows you get on Start.
-function SessionPreview({ routineIds, close }) {
+// `pick` comes from the day sheet: the preview is then read before choosing the session for a
+// date, so its main button plans it for that day, and Start is only offered on today.
+function SessionPreview({ routineIds, pick, close }) {
   const st = useStore(s => s.S)
   const p = useMemo(() => sessionPreview(st, routineIds, { speedUnit: speedUnitOf(st) }), [st, routineIds])
   const name = deriveSessionName(p.routines.map(r => r.name)) || t('Freestyle')
@@ -2859,10 +2865,13 @@ function SessionPreview({ routineIds, close }) {
       </div>
       : <div key={k} className="list" style={{ marginBottom: 8 }}>{row(u[0])}</div>)}
     <div style={{ height: 6 }} />
-    <Button variant="primary" icon="play" onClick={start}>{t('Start workout')}</Button>
+    {pick ? <>
+      <Button variant="primary" icon="calendar" onClick={() => { close(); pick.run() }}>{t('Plan for {0}', fmtDate(pick.iso))}</Button>
+      {pick.iso === todayISO() && !st.active && <><div style={{ height: 8 }} /><Button variant="tinted" icon="play" onClick={start}>{t('Start now')}</Button></>}
+    </> : <Button variant="primary" icon="play" onClick={start}>{t('Start workout')}</Button>}
   </>
 }
-export const sessionPreviewSheet = routineIds => ui().openSheet(close => <SessionPreview routineIds={routineIds} close={close} />)
+export const sessionPreviewSheet = (routineIds, pick) => ui().openSheet(close => <SessionPreview routineIds={routineIds} pick={pick} close={close} />)
 
 export function beginWorkout(routineIds, bw) {
   const st = S()

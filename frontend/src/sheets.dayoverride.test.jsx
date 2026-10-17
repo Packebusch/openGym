@@ -150,6 +150,24 @@ describe('Day sheet list in a coach week', () => {
     expect(lists(host)).toEqual([['US W1 D1', 'US W1 D2', 'Core'], ['Rest / skip this day']])
   })
 
+  it('See exercises opens the whole routine, and planning from there pins it to the day', () => {
+    const ids = ['0025', '0031', '0047', '0025', '0031']
+    const big = { id: 'big', name: 'Big Day', emoji: null, ex: ids.map((id, i) => ({ id, sets: 3, reps: 5, weight: 20 + i })) }
+    const friday = daysFromToday(2)
+    setS({ queue: null, routines: [...routines, big] })
+    dayOverrideSheet(friday)
+    const card = rowOf(renderTop(), 'Big Day')
+    act(() => card.querySelector('.pick-more').click())
+    expect(useStore.getState().S.dayPlan[friday]).toBeUndefined()   // looking is not picking
+    const preview = renderTop()
+    expect(preview.querySelectorAll('.item')).toHaveLength(ids.length)
+    const plan = [...preview.querySelectorAll('button')].find(b => b.textContent === `Plan for ${fmtDate(friday)}`)
+    expect([...preview.querySelectorAll('button')].some(b => b.textContent === 'Start now')).toBe(false)   // not today
+    act(() => plan.click())
+    expect(useStore.getState().S.dayPlan[friday]).toBe('big')
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
   it('a routine card shows its exercises, the muscles it works and when it was last done', () => {
     const r = { id: 'push', name: 'Push', emoji: null, ex: [{ id: '0025', sets: 3 }, { id: '0031', sets: 3 }] }
     const start = new Date(daysFromToday(-3) + 'T09:00:00').getTime()

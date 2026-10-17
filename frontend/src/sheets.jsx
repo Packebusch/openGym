@@ -293,21 +293,28 @@ function WeightInput({ value, setValue, unit }) {
 }
 
 /* ============================ body weight ============================ */
+// Today's weigh-in, as the log sheet and the Start sheet both save it. The number back, or null
+// when it is not a weight anyone has (the toast has said why).
+function saveTodayWeight(v, unit) {
+  const n = Math.round((v || 0) * 10) / 10
+  if (!n || n <= 0) { toast(t('Enter a valid weight')); return null }
+  if (bwTooHeavy(n, unit)) return null
+  update(s => {
+    const iso = todayISO()
+    const ex = s.bodyweight.find(b => b.d === iso)
+    if (ex) { ex.w = n; ex.t = Date.now() } else s.bodyweight.push({ d: iso, w: n, t: Date.now() })
+    s.bodyweight.sort((a, b) => (a.d < b.d ? -1 : 1))
+  })
+  return n
+}
 function BwSheet({ required, onDone, close }) {
   const st = useStore(s => s.S)
   const unit = st.unit
   const bw = lastBW(st)
   const [v, setV] = useState(bw ? bw.w : 70)
   const save = () => {
-    const n = Math.round((v || 0) * 10) / 10
-    if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
-    if (bwTooHeavy(n, unit)) return
-    update(s => {
-      const iso = todayISO()
-      const ex = s.bodyweight.find(b => b.d === iso)
-      if (ex) { ex.w = n; ex.t = Date.now() } else s.bodyweight.push({ d: iso, w: n, t: Date.now() })
-      s.bodyweight.sort((a, b) => (a.d < b.d ? -1 : 1))
-    })
+    const n = saveTodayWeight(v, unit)
+    if (n == null) return
     close()
     if (onDone) onDone(n); else toast(t('Weight saved'))
   }
@@ -331,7 +338,6 @@ function BwSheet({ required, onDone, close }) {
     <Button variant="primary" onClick={save}>{required ? t('Save & start workout') : t('Save')}</Button>
     {required && <>
       <div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</Button>
-      <div style={{ height: 2 }} /><Button variant="ghost" className="dim" icon="swap" onClick={() => closeThenNav(close, '/workout')}>{t('Choose a different workout')}</Button>
     </>}
     {!required && recent.length > 0 && <>
       <h4 className="sec">{t('Recent weigh-ins')}</h4>
@@ -2827,14 +2833,9 @@ export function startFlow(routineIds) {
 // same path beginWorkout does, so the numbers here are the rows you get on Start.
 // `pick` comes from the day sheet: the preview is then read before choosing the session for a
 // date, so its main button plans it for that day, and Start is only offered on today.
-function SessionPreview({ routineIds, pick, close }) {
-  const st = useStore(s => s.S)
-  const p = useMemo(() => sessionPreview(st, routineIds, { speedUnit: speedUnitOf(st) }), [st, routineIds])
-  const name = deriveSessionName(p.routines.map(r => r.name)) || t('Freestyle')
-  const counts = [exCount(p.items.length), p.sets ? t('{0} sets', p.sets) : null].filter(Boolean).join(' · ')
-  // Muscle labels come capitalized from MUSCLE_NAME or raw from the library ("pectorals"); only they
-  // take the capitalize, so "14 sets" keeps its lower case.
-  const muscles = p.muscles.map(m => t(MUSCLE_NAME[m] || m)).join(' · ')
+// The exercises of a preview, supersets together: each with what it opens at today and whether
+// the target moved, said in words beside the arrow so the reason is read, not hovered.
+function PreviewItems({ p }) {
   const row = i => {
     const it = p.items[i]
     const ex = exOr(it.id)
@@ -2843,34 +2844,122 @@ function SessionPreview({ routineIds, pick, close }) {
       <Thumb ex={ex} />
       <div className="grow">
         <div className={`tt ${exerciseNameClass(ex)}`}>{exerciseNameFor(ex)}</div>
-        <div className="ss row" style={{ gap: 4 }}>
-          {(up || down) && <span role="img" className="row" title={up ? t('Target goes up today') : t('Deload today: target comes down')}
-            aria-label={up ? t('Target goes up today') : t('Deload today: target comes down')}
-            style={{ color: up ? 'var(--acc)' : 'var(--yellow)', flex: 'none' }}><Icon name={up ? 'arrowUp' : 'arrowDown'} /></span>}
+        <div className="ss row" style={{ gap: 4, flexWrap: 'wrap' }}>
           <span>{it.line}</span>
+          {(up || down) && <span className={'pv-move' + (up ? ' up' : ' down')}>
+            <Icon name={up ? 'arrowUp' : 'arrowDown'} />{up ? t('Target goes up today') : t('Deload today: target comes down')}
+          </span>}
         </div>
       </div>
     </div>
   }
-  const start = () => { close(); startFlow(routineIds) }
+  return p.units.map((u, k) => u.length > 1
+    ? <div key={k} className="preview-ss">
+      <div className="small muted row" style={{ gap: 5, margin: '0 0 4px 2px' }}><Icon name="link" />{t('Superset')}</div>
+      <div className="list" style={{ marginBottom: 8 }}>{u.map(row)}</div>
+    </div>
+    : <div key={k} className="list" style={{ marginBottom: 8 }}>{row(u[0])}</div>)
+}
+function previewCounts(p) {
+  const counts = [exCount(p.items.length), p.sets ? t('{0} sets', p.sets) : null].filter(Boolean).join(' · ')
+  // Muscle labels come capitalized from MUSCLE_NAME or raw from the library ("pectorals"); only they
+  // take the capitalize, so "14 sets" keeps its lower case.
+  const muscles = p.muscles.map(m => t(MUSCLE_NAME[m] || m)).join(' · ')
+  return <>{counts}{muscles && <> · <span className="capitalize">{muscles}</span></>}</>
+}
+
+function SessionPreview({ routineIds, pick, close }) {
+  const st = useStore(s => s.S)
+  const p = useMemo(() => sessionPreview(st, routineIds, { speedUnit: speedUnitOf(st) }), [st, routineIds])
+  const name = deriveSessionName(p.routines.map(r => r.name)) || t('Freestyle')
+  const start = () => { close(); startSheet(routineIds) }
   return <>
     <div className="row" style={{ gap: 10, marginBottom: 4 }}>
       {p.routines[0] && <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name={glyphOf(p.routines[0].emoji)} /></span>}
       <h3 style={{ margin: 0 }}>{name}</h3>
     </div>
-    <div className="muted small" style={{ marginBottom: 12 }}>{counts}{muscles && <> · <span className="capitalize">{muscles}</span></>}</div>
-    {p.units.map((u, k) => u.length > 1
-      ? <div key={k} className="preview-ss">
-        <div className="small muted row" style={{ gap: 5, margin: '0 0 4px 2px' }}><Icon name="link" />{t('Superset')}</div>
-        <div className="list" style={{ marginBottom: 8 }}>{u.map(row)}</div>
-      </div>
-      : <div key={k} className="list" style={{ marginBottom: 8 }}>{row(u[0])}</div>)}
+    <div className="muted small" style={{ marginBottom: 12 }}>{previewCounts(p)}</div>
+    <PreviewItems p={p} />
     <div style={{ height: 6 }} />
     {pick ? <>
       <Button variant="primary" icon="calendar" onClick={() => { close(); pick.run() }}>{t('Plan for {0}', fmtDate(pick.iso))}</Button>
       {pick.iso === todayISO() && !st.active && <><div style={{ height: 8 }} /><Button variant="tinted" icon="play" onClick={start}>{t('Start now')}</Button></>}
     </> : <Button variant="primary" icon="play" onClick={start}>{t('Start workout')}</Button>}
   </>
+}
+
+/* ============================ start ============================ */
+// The one way into a session (design audit, proposals 1 and 2): every Start — the tab bar's, the
+// Today card's, a preview's — lands here. Today's plan is picked already and read out with the
+// numbers it opens at; the other routines and a freestyle session sit under it, one tap to pick.
+// The weigh-in is part of the sheet rather than a step before it: on (Settings → Weigh in
+// before workouts) the weight is filled in and saved with Start unless it is switched off for
+// today; off, a chip offers it. The tab bar's long-press still starts today's plan at once.
+// `pick` is the routine ids picked when the sheet opens; omitted, today's plan (or freestyle).
+export function StartPanel({ pick, onStarted, page = false }) {
+  const st = useStore(s => s.S)
+  const today = todayISO()
+  const todayIds = effectiveRoutineIds(st, today)
+  const key = ids => ids.join('+')
+  const [sel, setSel] = useState(() => key(pick || todayIds))
+  const ids = sel ? sel.split('+') : []
+  const p = useMemo(() => sessionPreview(st, ids, { speedUnit: speedUnitOf(st) }), [st, sel])
+  const name = deriveSessionName(p.routines.map(r => r.name)) || t('Freestyle')
+  const ask = st.weighIn !== false
+  const bw = lastBW(st)
+  const weighedToday = bw?.d === today
+  const [weigh, setWeigh] = useState(ask && !weighedToday)
+  const [w, setW] = useState(bw ? bw.w : 70)
+  const others = st.routines.filter(r => r.ex.length && key([r.id]) !== key(todayIds))
+  const start = () => {
+    let n = null
+    if (weigh) { n = saveTodayWeight(w, st.unit); if (n == null) return }
+    else if (weighedToday) n = bw.w
+    onStarted?.()
+    beginWorkout(ids, n)
+  }
+  // tappable() names the row a button; spread first, so it stays the radio it is.
+  const option = (k, icon, title, sub) => <div key={k || 'free'} {...tappable(() => setSel(k))} role="radio" aria-checked={sel === k}
+    className={'item start-opt' + (sel === k ? ' on' : '')}>
+    <span className="lrow-i"><Icon name={icon} /></span>
+    <div className="grow" style={{ minWidth: 0 }}><div className="tt">{title}</div>{sub && <div className="ss ellipsis">{sub}</div>}</div>
+    <span className="start-radio" aria-hidden="true">{sel === k && <Icon name="check" />}</span>
+  </div>
+  const exLineOf = rs => {
+    const { shown, more } = firstOf(rs.flatMap(r => r.ex.map(c => c.id)), 3)
+    return shown.map(id => exerciseNameText(exOr(id))).join(' · ') + (more ? ' · ' + t('+{0} more', more) : '')
+  }
+  const todayRoutines = st.routines.filter(r => todayIds.includes(r.id))
+  return <div className={page ? 'start-panel narrow' : 'start-panel'}>
+    {page ? <div className="hdr"><div><h1>{t('Start workout')}</h1><div className="sub">{t(DAYN[new Date().getDay()])}</div></div></div>
+      : <h3>{t('Start workout')}</h3>}
+    <div className="list" role="radiogroup" aria-label={t('Start workout')}>
+      {todayIds.length > 0 && option(key(todayIds), glyphOf(todayRoutines[0]?.emoji), deriveSessionName(todayRoutines.map(r => r.name)), t("Today's plan"))}
+      {others.map(r => option(r.id, glyphOf(r.emoji), r.name, exLineOf([r])))}
+      {option('', 'shuffle', t('Freestyle'), t('Pick exercises as you go'))}
+    </div>
+    {ids.length > 0 && <details className="start-preview" open={!page || undefined}>
+      <summary className="small muted">{previewCounts(p)}</summary>
+      <div style={{ marginTop: 8 }}><PreviewItems p={p} /></div>
+    </details>}
+    <div className="start-weigh">
+      {weigh ? <>
+        <div className="row between"><span className="small" style={{ fontWeight: 600 }}>{t('Body weight')}</span>
+          <button className="chip" onClick={() => setWeigh(false)}>{t('Skip today')}</button></div>
+        <WeightInput value={w} setValue={setW} unit={st.unit} />
+      </> : weighedToday
+        ? <div className="small muted row" style={{ gap: 6 }}><Icon name="checkCircle" style={{ color: 'var(--green)' }} />{t('Weighed in today: {0}', fmtNum(bw.w) + ' ' + st.unit)}</div>
+        : <button className="chip" onClick={() => setWeigh(true)}><Icon name="scale" />{t('Log body weight')}</button>}
+    </div>
+    <Button variant="primary" icon="play" onClick={start}>{ids.length ? t('Start {0}', name) : t('Start freestyle workout')}</Button>
+    {!st.routines.length && <><div style={{ height: 8 }} /><Button onClick={() => { onStarted?.(); nav('/plan') }}>{t('Build a plan first')}</Button></>}
+  </div>
+}
+// Opens the Start sheet, or goes back to a session already running: starting another would
+// overwrite it.
+export function startSheet(pick) {
+  if (S().active) { nav('/workout'); return }
+  ui().openSheet(close => <StartPanel pick={pick} onStarted={close} />)
 }
 export const sessionPreviewSheet = (routineIds, pick) => ui().openSheet(close => <SessionPreview routineIds={routineIds} pick={pick} close={close} />)
 

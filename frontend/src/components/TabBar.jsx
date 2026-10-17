@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutineIds, effectiveRoutines } from '../lib/history.js'
@@ -22,7 +23,10 @@ function Tab({ active, icon, label, onClick, dot }) {
 // Screens without a tab of their own light the tab they are opened from.
 const PARENT = { history: 'stats', 'structural-balance': 'stats', measurements: 'stats', 'progress-photos': 'stats', settings: 'home', muscles: 'library', coach: 'plan' }
 
-export default function TabBar({ onStart }) {
+// How long a press on Start has to be held to skip the Start sheet and begin today's plan.
+export const LONG_PRESS_MS = 500
+
+export default function TabBar({ onStart, onQuickStart }) {
   const nav = useNavigate()
   const loc = useLocation()
   const S = useStore(s => s.S)
@@ -31,19 +35,34 @@ export default function TabBar({ onStart }) {
   // With the connection banner switched off, a sync problem shows as a dot on Home, the tab
   // Settings lives under (#369, #330).
   const trouble = useConnectionTrouble()
+  const held = useRef({ timer: 0, fired: 0 })
   if (!user && !isGuest) return null
   const cur = loc.pathname.split('/')[1] || 'home'
   const on = k => cur === k || PARENT[cur] === k
 
   const running = !!S.active && cur !== 'workout' && !S.active.editingWorkoutId && !S.active.backfill && S.active.start > 0
+  // One door (design audit, proposal 1): a tap always opens the Start sheet, today's plan picked;
+  // a session already open is resumed instead.
   const startWorkout = () => {
-    if (!S.active) {
-      // A weekday can hold several routines; start the combined session if any of them has
-      // exercises, otherwise fall through to the picker.
-      if (effectiveRoutines(S, todayISO()).some(r => r.ex.length)) { onStart(effectiveRoutineIds(S, todayISO())); return }
-    }
-    nav('/workout')
+    // The click a long-press ends with is not a second start. Only that click: a press whose
+    // release never became a click (the screen changed under it) must not swallow the next tap.
+    if (Date.now() - held.current.fired < 1500) { held.current.fired = 0; return }
+    if (S.active) { nav('/workout'); return }
+    onStart()
   }
+  // Holding Start begins today's plan without the sheet, for the days that go as planned. With
+  // nothing planned (or a session open) there is nothing to skip to, so it does what a tap does.
+  const planned = !S.active && effectiveRoutines(S, todayISO()).some(r => r.ex.length)
+  const pressStart = () => {
+    clearTimeout(held.current.timer)
+    held.current.fired = 0
+    if (!planned || !onQuickStart) return
+    held.current.timer = setTimeout(() => {
+      held.current.fired = Date.now()
+      onQuickStart(effectiveRoutineIds(S, todayISO()))
+    }, LONG_PRESS_MS)
+  }
+  const pressEnd = () => clearTimeout(held.current.timer)
 
   return (
     <nav id="tabbar">
@@ -57,6 +76,8 @@ export default function TabBar({ onStart }) {
           button still named Resume; a past workout being edited or logged after the fact has no
           clock to run. */}
       <button className={'start' + (S.active ? ' rec' : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}
+        onPointerDown={pressStart} onPointerUp={pressEnd} onPointerLeave={pressEnd} onPointerCancel={pressEnd}
+        onContextMenu={e => { if (planned) e.preventDefault() }}
         aria-label={running ? t('Resume') : undefined}>
         <span className="cir"><Icon name="play" /></span>
         {running ? <span className="tab-time"><Elapsed start={S.active.start} /></span>

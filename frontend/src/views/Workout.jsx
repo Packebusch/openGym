@@ -8,12 +8,11 @@ import { useUI } from '../store/useUI.js'
 import { exOr, betterWeight } from '../lib/exercises.js'
 import { usesBar } from '../lib/bar.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad, sameLoad, plateDelta, dropGrid } from '../lib/plates.js'
-import { effectiveRoutines, effectiveRoutineIds, lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, repStep, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, barFloor, makeWarmupAt, canBeWarmup, makeWorkAt, removeRowAt, removeLastSet, setSpanAt, copyRowAt, copySpanAt, insertRowAt, pairAdjacent, unpairSuperset, cleanupSg, applyIntensifierPlan, pinnedNoteFor, exNoteFor, setsRepsOf } from '../lib/history.js'
-import { fmtNum, fmtPlate, exerciseNameText, fmtDate, fmtDaysAgo, todayISO, exCount, DAYN } from '../lib/format.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, repStep, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, barFloor, makeWarmupAt, canBeWarmup, makeWorkAt, removeRowAt, removeLastSet, setSpanAt, copyRowAt, copySpanAt, insertRowAt, pairAdjacent, unpairSuperset, cleanupSg, applyIntensifierPlan, pinnedNoteFor, exNoteFor, setsRepsOf } from '../lib/history.js'
+import { fmtNum, fmtPlate, exerciseNameText, fmtDate, fmtDaysAgo, todayISO } from '../lib/format.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from '../lib/incline.js'
 import { beep, vibrate, unlock } from '../lib/sound.js'
-import { pinState } from '../lib/queue.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { api, beacon } from '../lib/api.js'
 import { pyramidRestFor, maxRecordAt, isPyramid, pyramidLabel } from '../lib/pyramid.js'
@@ -26,7 +25,7 @@ import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
-import { startFlow, sessionPreviewSheet, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
+import { StartPanel, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
 import { effortColor } from '../lib/effort.js'
 import Elapsed from '../components/Elapsed.jsx'
@@ -37,9 +36,6 @@ import { progressionGuidance } from '../lib/progression-copy.js'
 import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../lib/session-start.js'
 import { routineChangesFromEntry, updateRoutineFromEntry } from '../lib/routines.js'
 import { sessionNoProg, setSessionNoProg, setEntryNoProg, joinSessionNoProg } from '../lib/session-noprog.js'
-import { glyphOf } from '../lib/glyphs.js'
-import { routineExerciseIds, firstOf } from '../lib/session-preview.js'
-import { tappable } from '../lib/use-sheet-keyboard.js'
 import { markAllSetsDone, sessionHistory } from '../lib/backfill.js'
 import { bestSetFor } from '../lib/exercise-history.js'
 import { isWarmupRow, isFailureSet, toggleFailure, isDropSet, isRestPauseSet, dropsOf, clustersOf, addDrop, addCluster, removeDropAt, removeClusterAt, setDropAt, setClusterAt, nextDropWeight, nextBurstReps, isSideSet, makeSideSet, setSideField, toggleSide, addSideDrop, removeSideDropAt, setSideDropAt, addSideCluster, removeSideClusterAt, setSideClusterAt, WEIGHT_ORIGIN_MANUAL } from '../lib/workout-model.js'
@@ -55,44 +51,10 @@ import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFo
 const HOLD_KEY_GRACE_MS = 1500
 
 /* ---------- start chooser (no active workout) ---------- */
+// With no session open, #/workout is the Start sheet laid out as a page (sheets.jsx StartPanel):
+// one way in, whichever door you came through.
 function StartChooser() {
-  const nav = useNavigate()
-  const S = useStore(s => s.S)
-  const todayIds = effectiveRoutineIds(S, todayISO())
-  const todayRoutines = effectiveRoutines(S, todayISO())
-  const todayName = todayRoutines.map(r => r.name).join(' + ')
-  const todayOvr = S.dayPlan[todayISO()] !== undefined && pinState(S, S.dayPlan[todayISO()]) !== 'done' // a fulfilled pin is no override
-  const idSet = new Set(todayIds)
-  const others = S.routines.filter(r => !idSet.has(r.id))
-  // A routine reads as its first exercises, not just a count: "Bench Press · Row · +3 more".
-  const exLineOf = routines => {
-    const { shown, more } = firstOf(routineExerciseIds(routines), 3)
-    return shown.map(id => exerciseNameText(exOr(id))).join(' · ') + (more ? ' · ' + t('+{0} more', more) : '')
-  }
-  return <div className="narrow">
-    <div className="hdr"><div><h1>{t('Start workout')}</h1><div className="sub">{t(DAYN[new Date().getDay()])} · {todayRoutines.length ? t('today is {0}', todayName) : t('rest day, but no one’s stopping you')}</div></div></div>
-    {todayRoutines.length > 0 && <div className="card" style={{ borderColor: 'var(--acc)' }}>
-      <h2 className="accent">{t("Today's plan")}{todayOvr ? ' · ' + t('rescheduled') : ''}</h2>
-      <div className="row between" style={{ marginBottom: 12 }}>
-        <div style={{ minWidth: 0 }}><div className="big">{todayName}</div><div className="muted small">{exCount(todayRoutines.reduce((n, r) => n + r.ex.length, 0))}</div>
-          <div className="muted small" style={{ marginTop: 2 }}>{exLineOf(todayRoutines)}</div></div>
-        <span className="lrow-i" style={{ width: 38, height: 38, borderRadius: 9, fontSize: 22 }}><Icon name={glyphOf(todayRoutines[0].emoji)} /></span>
-      </div>
-      <Button variant="primary" icon="play" onClick={() => startFlow(todayIds)}>{t('Start {0}', todayName)}</Button>
-      <div style={{ height: 6 }} />
-      <Button variant="ghost" icon="list" onClick={() => sessionPreviewSheet(todayIds)}>{t('See exercises')}</Button>
-    </div>}
-    {others.length > 0 && <><h4 className="sec">{t('Other routines')}</h4>
-      {/* A tap on the row shows the routine (the preview sheet, with its own Start); the Start
-          pill starts it at once. */}
-      <div className="list">{others.map(r => <div key={r.id} className="item" {...tappable(() => sessionPreviewSheet([r.id]))}>
-        <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow" style={{ minWidth: 0 }}><div className="tt">{r.name}</div><div className="ss" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.ex.length ? exLineOf([r]) : exCount(0)}</div></div>
-        <button type="button" className="tag acc" style={{ flex: 'none', minHeight: 30, padding: '0 12px' }} onClick={e => { e.stopPropagation(); startFlow([r.id]) }}>{t('Start')}</button></div>)}</div></>}
-    <div style={{ height: 14 }} />
-    <Button icon="shuffle" onClick={() => startFlow([])}>{t('Freestyle workout (pick as you go)')}</Button>
-    {!S.routines.length && <><div style={{ height: 10 }} /><Button variant="primary" onClick={() => nav('/plan')}>{t('Build a plan first')}</Button></>}
-  </div>
+  return <StartPanel page />
 }
 
 

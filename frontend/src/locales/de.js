@@ -2258,4 +2258,10 @@ export default {
   'Chart, {0} entries, latest {1}': 'Diagramm, {0} Einträge, zuletzt {1}',
   'Routine name': 'Name der Routine',
   'Hours': 'Stunden',
+  // design audit redesign
+  'Pick exercises as you go': 'Übungen unterwegs auswählen',
+  'Skip today': 'Heute auslassen',
+  'Start freestyle workout': 'Freies Training starten',
+  'The Start sheet fills in your body weight and saves it with the workout. Off, it offers it as a chip instead.': 'Das Start-Blatt trägt dein Körpergewicht ein und speichert es mit dem Training. Aus, bietet es dafür einen Chip an.',
+  'Weighed in today: {0}': 'Heute gewogen: {0}',
 }

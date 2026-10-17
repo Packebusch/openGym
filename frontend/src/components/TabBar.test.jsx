@@ -5,7 +5,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import TabBar from './TabBar.jsx'
+import TabBar, { LONG_PRESS_MS } from './TabBar.jsx'
 import { DEF, useStore } from '../store/useStore.js'
 
 vi.mock('react-router-dom', () => ({
@@ -112,6 +112,72 @@ describe('the tab icons and labels', () => {
       // a past workout being edited has no clock running
       act(() => { useStore.getState().update(s => { s.active.editingWorkoutId = 'w1' }, false) })
       expect(label(tabs()[2])).toBe('Edit workout')
+    } finally { vi.useRealTimers() }
+  })
+})
+
+// Design audit, proposal 1: a tap on Start always opens the Start sheet; holding it starts today's
+// plan without the sheet. With nothing planned a hold is just a tap.
+describe('Start: one door, and a long-press for the days that go to plan', () => {
+  const start = () => tabs()[2]
+  const press = (type, el = start()) => act(() => { el.dispatchEvent(new PointerEvent(type, { bubbles: true })) })
+  const planToday = () => useStore.getState().update(s => {
+    s.routines = [{ id: 'r1', name: 'Push', ex: [{ id: '0025' }] }]
+    s.week = { [new Date().getDay()]: ['r1'] }
+  }, false)
+
+  it('a tap opens the Start sheet, even on a planned day', () => {
+    act(planToday)
+    const onStart = vi.fn(), onQuickStart = vi.fn()
+    act(() => { root.render(<TabBar onStart={onStart} onQuickStart={onQuickStart} />) })
+    act(() => { start().click() })
+    expect(onStart).toHaveBeenCalledTimes(1)
+    expect(onQuickStart).not.toHaveBeenCalled()
+  })
+
+  it('holding it starts today\'s plan, and the click it ends with opens nothing', () => {
+    vi.useFakeTimers()
+    try {
+      act(planToday)
+      const onStart = vi.fn(), onQuickStart = vi.fn()
+      act(() => { root.render(<TabBar onStart={onStart} onQuickStart={onQuickStart} />) })
+      press('pointerdown')
+      act(() => { vi.advanceTimersByTime(LONG_PRESS_MS) })
+      expect(onQuickStart).toHaveBeenCalledWith(['r1'])
+      press('pointerup')
+      act(() => { start().click() })
+      expect(onStart).not.toHaveBeenCalled()
+      // the next tap is a tap again
+      act(() => { vi.advanceTimersByTime(2000) })
+      act(() => { start().click() })
+      expect(onStart).toHaveBeenCalledTimes(1)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('a short press is a tap', () => {
+    vi.useFakeTimers()
+    try {
+      act(planToday)
+      const onStart = vi.fn(), onQuickStart = vi.fn()
+      act(() => { root.render(<TabBar onStart={onStart} onQuickStart={onQuickStart} />) })
+      press('pointerdown')
+      act(() => { vi.advanceTimersByTime(LONG_PRESS_MS - 100) })
+      press('pointerup')
+      act(() => { vi.advanceTimersByTime(1000) })
+      act(() => { start().click() })
+      expect(onQuickStart).not.toHaveBeenCalled()
+      expect(onStart).toHaveBeenCalledTimes(1)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('with nothing planned, holding does nothing a tap would not', () => {
+    vi.useFakeTimers()
+    try {
+      const onStart = vi.fn(), onQuickStart = vi.fn()
+      act(() => { root.render(<TabBar onStart={onStart} onQuickStart={onQuickStart} />) })
+      press('pointerdown')
+      act(() => { vi.advanceTimersByTime(LONG_PRESS_MS * 2) })
+      expect(onQuickStart).not.toHaveBeenCalled()
     } finally { vi.useRealTimers() }
   })
 })

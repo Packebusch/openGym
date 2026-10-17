@@ -2171,3 +2171,19 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 [dir="rtl"] *{letter-spacing:0}
 .exfix-link{display:inline-flex;align-items:center;gap:5px;margin:14px 0 4px;color:var(--label-3);text-decoration:none}
 .list .similar-label{margin:16px 2px 6px;grid-column:1/-1}
+
+/* ------------------------------------------------- start sheet (design audit, 1–2) -- */
+.start-panel h3{margin-bottom:var(--sp-3)}
+.start-opt .start-radio{width:24px;height:24px;border-radius:12px;flex:none;display:grid;place-items:center;
+  border:1.5px solid var(--label-3);font-size:14px;color:var(--on-acc)}
+.start-opt.on .start-radio{background:var(--acc);border-color:var(--acc)}
+.start-opt.on .tt{font-weight:600}
+.ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.start-preview{margin:var(--sp-3) 2px 0}
+.start-preview>summary{cursor:pointer;list-style-position:inside;padding:var(--sp-1) 0}
+.start-weigh{margin:var(--sp-4) 0;display:flex;flex-direction:column;gap:var(--sp-2)}
+.start-weigh>.chip{align-self:flex-start;display:inline-flex;gap:6px;align-items:center}
+.pv-move{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-xs);font-weight:500}
+.pv-move.up{color:var(--acc-text)}
+.pv-move.down{color:var(--goal)}
+

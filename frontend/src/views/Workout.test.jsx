@@ -8,9 +8,7 @@ import { nextPrescription } from '../lib/progression.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { buildCompletedWorkout } from '../lib/finish-workout.js'
 import { isWarmupRow } from '../lib/workout-model.js'
-import { finishWorkout, finishWorkoutSheet, startFlow, sessionPreviewSheet } from '../sheets.jsx'
-import { exOr } from '../lib/exercises.js'
-import { exerciseNameText } from '../lib/format.js'
+import { finishWorkout, finishWorkoutSheet, StartPanel } from '../sheets.jsx'
 
 // A menu's actions in order, whether it came as one list or in groups (menuSheet `sections`).
 const menuItemsOf = menu => (menu.sections ? menu.sections.flatMap(g => g.items || []) : menu.items || []).filter(Boolean)
@@ -86,6 +84,7 @@ vi.mock('../store/useUI.js', () => {
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
 vi.mock('../sheets.jsx', () => ({
   startFlow: vi.fn(),
+  StartPanel: vi.fn(() => null),
   sessionPreviewSheet: vi.fn(),
   exercisePicker: mocks.exercisePicker,
   exConfigSheet: mocks.exConfigSheet,
@@ -3533,39 +3532,15 @@ describe('a calmer exercise card', () => {
 })
 
 // The Start screen names what each routine holds, and a row tap shows it before anything starts.
+// With no session open the screen is the Start sheet laid out as a page: one way in, whichever
+// door you came through (design audit, proposal 1). What the panel shows is sheets.start.test.jsx.
 describe('the Start screen', () => {
-  const routines = [
-    { id: 'push', name: 'Push', ex: [{ id: '0025' }] },
-    { id: 'pull', name: 'Pull', ex: [{ id: '0031' }, { id: '0025' }] },
-  ]
-  const open = async (over = {}) => {
-    mocks.S = { ...workout([]), active: null, routines, week: { [new Date().getDay()]: ['push'] }, dayPlan: {}, queue: null, ...over }
+  it('renders the Start panel as a page', async () => {
+    mocks.S = { ...workout([]), active: null, routines: [], week: {}, dayPlan: {}, queue: null }
     installDom()
+    StartPanel.mockClear()
     await act(async () => { root.render(React.createElement(Workout)) })
-  }
-  const otherRow = () => [...container.querySelectorAll('.list .item')].find(el => el.textContent.includes('Pull'))
-
-  it('lists another routine\'s exercises instead of a bare count', async () => {
-    await open()
-    expect(otherRow().querySelector('.ss').textContent).toBe(['0031', '0025'].map(id => exerciseNameText(exOr(id))).join(' · '))
-  })
-
-  it('a row tap opens the preview; its Start pill starts at once', async () => {
-    await open()
-    startFlow.mockClear(); sessionPreviewSheet.mockClear()
-    await click(otherRow())
-    expect(sessionPreviewSheet).toHaveBeenCalledWith(['pull'])
-    expect(startFlow).not.toHaveBeenCalled()
-    await click(otherRow().querySelector('button.tag'))
-    expect(startFlow).toHaveBeenCalledWith(['pull'])
-    expect(sessionPreviewSheet).toHaveBeenCalledTimes(1)
-  })
-
-  it('today\'s plan offers See exercises next to Start', async () => {
-    await open()
-    sessionPreviewSheet.mockClear()
-    const see = [...container.querySelectorAll('button')].find(b => b.textContent.trim() === 'See exercises')
-    await click(see)
-    expect(sessionPreviewSheet).toHaveBeenCalledWith(['push'])
+    expect(StartPanel).toHaveBeenCalled()
+    expect(StartPanel.mock.calls[0][0]).toEqual({ page: true })
   })
 })

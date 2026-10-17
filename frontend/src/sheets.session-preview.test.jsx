@@ -25,6 +25,9 @@ function install(routines) {
 }
 function openSheet(ids) {
   act(() => sessionPreviewSheet(ids))
+  return renderTop()
+}
+function renderTop() {
   const sheet = useUI.getState().sheets.at(-1)
   const host = document.createElement('div')
   document.body.appendChild(host)
@@ -63,7 +66,7 @@ describe('the session preview sheet', () => {
     expect(openSheet(['a', 'b']).querySelector('h3').textContent).toBe('Strength + Core')
   })
 
-  it('Start closes the sheet and starts exactly those routines', () => {
+  it('Start hands over to the Start sheet with exactly those routines picked', () => {
     install([
       { id: 'a', name: 'Strength', prog: 'off', ex: [{ id: BENCH, sets: 3, reps: 5, weight: 60 }] },
       { id: 'b', name: 'Core', prog: 'off', ex: [{ id: CRUNCH, sets: 2, reps: 12 }] },
@@ -71,7 +74,12 @@ describe('the session preview sheet', () => {
     const host = openSheet(['b'])
     const start = [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start workout')
     act(() => { start.click() })
-    expect(useUI.getState().sheets.length).toBe(0)
+    // the preview is gone and the Start sheet is the one open sheet, Core picked
+    expect(useUI.getState().sheets.length).toBe(1)
+    const next = renderTop()
+    const go = [...next.querySelectorAll('.btn.primary')].at(-1)
+    expect(go.textContent).toBe('Start Core')
+    act(() => { go.click() })
     expect(S().active?.routineIds).toEqual(['b'])
     expect(S().active.entries.map(e => e.id)).toEqual([CRUNCH])
   })

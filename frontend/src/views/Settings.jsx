@@ -492,10 +492,10 @@ export default function Settings({ page = null, find = null, via = null }) {
         </Row>
       </Section>
       <Section title={t('Before and during')}>
-        {/* The quick weigh-in that opens on Start (sheets.jsx startFlow, issue #137); off skips
-            straight to the session. Home and Stats still log weight by hand. */}
+        {/* The weigh-in on the Start sheet (sheets.jsx StartPanel, issue #137): on, it is filled in
+            and saved with Start; off, a chip offers it. Progress → Body still logs weight by hand. */}
         <Row icon="scale" iconTint="var(--green)" title={t('Weigh in before workouts')}
-          subtitle={t('Asks for your body weight when a workout starts. Off starts the session straight away.')}>
+          subtitle={t('The Start sheet fills in your body weight and saves it with the workout. Off, it offers it as a chip instead.')}>
           <Switch checked={S.weighIn !== false} onChange={v => update(s => { s.weighIn = v })} />
         </Row>
         {(wakeOK || !MOBILE) && (

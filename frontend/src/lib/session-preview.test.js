@@ -2,7 +2,7 @@
 // beginWorkout builds, not the routine's saved ones — or "82.5 kg" in the sheet becomes "80" on
 // the bar the moment you tap Start.
 import { describe, it, expect } from 'vitest'
-import { routineExerciseIds, firstOf, sessionPreview } from './session-preview.js'
+import { routineExerciseIds, firstOf, sessionPreview, routineSummary } from './session-preview.js'
 import { buildCombinedEntries } from './session-merge.js'
 import { buildCompletedWorkout } from './finish-workout.js'
 import { isWarmupRow } from './workout-model.js'
@@ -89,5 +89,32 @@ describe('sessionPreview', () => {
   it('is empty for no routine or one that no longer exists', () => {
     const st = state([])
     expect(sessionPreview(st, ['gone'])).toMatchObject({ items: [], units: [], muscles: [], sets: 0 })
+  })
+})
+
+describe('routineSummary', () => {
+  const r = { id: 'r', name: 'Push', ex: [{ id: BENCH, sets: 5 }, { id: ROW, sets: 3 }, { id: CRUNCH, sets: 1 }] }
+
+  it('lists the exercises in order and ranks the muscles by planned sets', () => {
+    const sum = routineSummary(state([r]), r)
+    expect(sum.exIds).toEqual([BENCH, ROW, CRUNCH])
+    const key = id => exOr(id).tg || exOr(id).bp
+    expect(sum.muscles[0]).toBe(key(BENCH))
+    expect(sum.muscles).toContain(key(ROW))
+  })
+
+  it('finds the latest day the routine was trained, alone or combined, and null when never', () => {
+    const st = state([r], { workouts: [
+      { id: 'a', d: '2026-08-01', start: 1, routineIds: ['r'] },
+      { id: 'b', d: '2026-08-09', start: 2, routineIds: ['other', 'r'] },
+      { id: 'c', d: '2026-08-12', start: 3, routineIds: ['other'] },
+      { id: 'd', d: '2026-08-05', start: 4, routineId: 'r' },
+    ] })
+    expect(routineSummary(st, r).lastDay).toBe('2026-08-09')
+    expect(routineSummary(state([r]), r).lastDay).toBeNull()
+  })
+
+  it('tolerates an empty or malformed routine', () => {
+    expect(routineSummary(state([]), { id: 'x' })).toEqual({ exIds: [], muscles: [], lastDay: null })
   })
 })

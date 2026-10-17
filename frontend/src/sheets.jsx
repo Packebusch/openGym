@@ -3,7 +3,7 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf, smOf, searchExercises, similarExercises, exOr, isAssisted, betterWeight, beatsWeight, isCustomEx } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile, profileEquipment, ACC_V } from './lib/equipment.js'
-import { fmtDate, fmtDateRange, fmtNum, fmtPlate, exerciseNameText, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, exCount, routineCount, setsWorkCount, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
+import { fmtDate, fmtDaysAgo, fmtDateRange, fmtNum, fmtPlate, exerciseNameText, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, exCount, routineCount, setsWorkCount, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
 import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRoutineIds, workoutDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, sessionSections, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, withLoadKind, loadKindFor, baseWeightFor, dropGrid } from './lib/plates.js'
@@ -56,7 +56,7 @@ import { finishCompare, finishCardio } from './lib/finish-compare.js'
 import { workoutFit, fitFileName } from './lib/fit-export.js'
 import { joinSessionNoProg } from './lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
-import { sessionPreview } from './lib/session-preview.js'
+import { sessionPreview, routineSummary, firstOf } from './lib/session-preview.js'
 import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, sessionHistory } from './lib/backfill.js'
 import { moveWorkout, sameWorkout, startTimeOf, durationMinOf, setWorkoutDuration, rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from './lib/workout-date.js'
 import { editCompletedSession, editLeftEmpty, editedRecord, editChangesNothing } from './lib/session-edit.js'
@@ -2277,10 +2277,25 @@ function DayOverride({ iso, close }) {
     close()
     toast(v === '' ? t('Back to weekly plan') : v === 'rest' ? t('{0} set to rest', fmtDate(iso)) : t('{0} planned for {1}', (st.routines.find(r => r.id === v) || {}).name, fmtDate(iso)))
   }
-  const row = r => <div key={r.id} className="item" {...tappable(() => set(r.id))}>
-    <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-    <div className="grow"><div className="tt">{r.name}</div><div className="ss">{pinnedOn[r.id] && pinnedOn[r.id] !== iso ? fmtDate(pinnedOn[r.id], true) : exCount(r.ex.length)}</div></div>
-    {effIds.includes(r.id) && <Icon name="check" className="accent" />}</div>
+  // A routine as a card, not a bare name: what it holds (its first exercises and the muscles it
+  // works most) and when you last did it, so picking a different session for the day is a
+  // choice you can make from the sheet, without opening each routine to remember what is in it.
+  const row = r => {
+    const sum = routineSummary(st, r)
+    const exs = firstOf(sum.exIds, 3)
+    const on = effIds.includes(r.id)
+    return <div key={r.id} className={'item pick-row' + (on ? ' on' : '')} {...tappable(() => set(r.id))}>
+      <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
+      <div className="grow">
+        <div className="pick-head"><div className="tt">{r.name}</div>
+          {sum.lastDay && <span className="pick-last">{fmtDaysAgo(sum.lastDay)}</span>}</div>
+        <div className="ss">{pinnedOn[r.id] && pinnedOn[r.id] !== iso ? fmtDate(pinnedOn[r.id], true) : exCount(r.ex.length)}</div>
+        {exs.shown.length > 0 && <div className="pick-ex">{exs.shown.map(id => exerciseNameText(exOr(id))).join(' · ')}{exs.more ? ' · ' + t('+{0} more', exs.more) : ''}</div>}
+        {sum.muscles.length > 0 && <div className="mchips">{sum.muscles.map(m => <span key={m} className="mchip capitalize">{t(MUSCLE_NAME[m] || m)}</span>)}</div>}
+      </div>
+      {on && <Icon name="checkCircle" className="accent pick-on" />}
+    </div>
+  }
   return <>
     <h3>{fmtDate(iso, true)}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyNames.length ? deriveSessionName(weeklyNames) : t('Rest')}{changed && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}<br />{t('Sick, missed a day or want a different session? Pick what to train instead.')}</div>
@@ -2297,9 +2312,11 @@ function DayOverride({ iso, close }) {
     {coach.length > 0 && <>
       <h4 className="sec" style={{ marginTop: 0 }}>{ownLoop ? t('Your loop') : t('Coach week')}</h4>
       <div className="list" style={{ marginBottom: 8 }}>{coach.map(row)}</div>
+      {st.routines.some(r => !remaining.includes(r.id)) && <h4 className="sec">{t('Routines')}</h4>}
     </>}
-    <div className="list">
-      {st.routines.filter(r => !remaining.includes(r.id)).map(row)}
+    <div className="list">{st.routines.filter(r => !remaining.includes(r.id)).map(row)}</div>
+    {/* No session at all, or the plan back as it was: set apart from the routines, in one group. */}
+    <div className="list menu-list pick-other">
       <div className="item" {...tappable(() => set('rest'))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest / skip this day')}</div></div>{effIds.length === 0 && <Icon name="check" className="accent" />}</div>
       {hasOvr && <div className="item" {...tappable(() => set(''))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="reset" /></span><div className="grow"><div className="tt">{t('Back to weekly plan')}</div></div></div>}
     </div>

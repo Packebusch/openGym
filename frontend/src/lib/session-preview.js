@@ -4,7 +4,7 @@
 // in the preview is what the rows say once you tap Start, never a second reading of the plan.
 // Nothing here is stored: a preview is built, shown and dropped.
 import { buildCombinedEntries } from './session-merge.js'
-import { exLine, supersetUnits } from './history.js'
+import { exLine, supersetUnits, workoutDay } from './history.js'
 import { isWarmupRow } from './workout-model.js'
 import { exOr } from './exercises.js'
 
@@ -58,4 +58,32 @@ export function sessionPreview(st, routineIds, { speedUnit, maxMuscles = 3 } = {
     routines, items, units: supersetUnits(items), muscles,
     sets: items.reduce((n, it) => n + it.work, 0),
   }
+}
+
+/**
+ * What the day sheet shows under a routine you could pick for the day, read from the routine and
+ * the log alone (no session is built, so a list of every routine stays cheap):
+ * - `exIds`: its exercises in order, for "Bench · Row · Squat · +2 more" (firstOf)
+ * - `muscles`: the main target muscles by planned sets, most first, at most `maxMuscles` — the
+ *   same keys sessionPreview gives, so they read the same in both sheets
+ * - `lastDay`: the day of the latest logged workout that included the routine, or null
+ */
+export function routineSummary(st, routine, { maxMuscles = 3 } = {}) {
+  const exIds = (routine?.ex || []).map(cfg => cfg.id)
+  const load = new Map()
+  for (const cfg of routine?.ex || []) {
+    const ex = exOr(cfg.id)
+    const key = ex?.tg || ex?.bp
+    const sets = Number.isFinite(cfg.sets) && cfg.sets > 0 ? cfg.sets : 1
+    if (key) load.set(key, (load.get(key) || 0) + sets)
+  }
+  const muscles = [...load].sort((a, b) => b[1] - a[1]).slice(0, maxMuscles).map(([k]) => k)
+  let lastDay = null
+  for (const w of st?.workouts || []) {
+    const ids = [].concat(w?.routineIds ?? w?.routineId ?? [])
+    if (!ids.includes(routine?.id)) continue
+    const day = workoutDay(w)
+    if (day && (!lastDay || day > lastDay)) lastDay = day
+  }
+  return { exIds, muscles, lastDay }
 }

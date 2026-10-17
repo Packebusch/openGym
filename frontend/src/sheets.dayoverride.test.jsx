@@ -108,9 +108,10 @@ describe('Day sheet list in a coach week', () => {
     dayOverrideSheet(todayISO())
     const host = renderTop()
     expect(heading(host)).toBe('Coach week')
-    const [coach, plain] = lists(host)
+    const [coach, plain, other] = lists(host)
     expect(coach).toEqual(['US W1 D2'])
-    expect(plain).toEqual(['US W1 D1', 'Core', 'Rest / skip this day'])
+    expect(plain).toEqual(['US W1 D1', 'Core'])
+    expect(other).toEqual(['Rest / skip this day'])
   })
 
   it('your own loop is headed Your loop, not Coach week', () => {
@@ -141,11 +142,23 @@ describe('Day sheet list in a coach week', () => {
     expect(rowOf(host, 'US W1 D1').querySelector('.ss').textContent).toBe(exCount(1))
   })
 
-  it('without a queue there is no heading and one plain list', () => {
+  it('without a queue there is no heading: the routines, then rest in a group of its own', () => {
     setS({ queue: null })
     dayOverrideSheet(todayISO())
     const host = renderTop()
     expect(heading(host)).toBeUndefined()
-    expect(lists(host)).toEqual([['US W1 D1', 'US W1 D2', 'Core', 'Rest / skip this day']])
+    expect(lists(host)).toEqual([['US W1 D1', 'US W1 D2', 'Core'], ['Rest / skip this day']])
+  })
+
+  it('a routine card shows its exercises, the muscles it works and when it was last done', () => {
+    const r = { id: 'push', name: 'Push', emoji: null, ex: [{ id: '0025', sets: 3 }, { id: '0031', sets: 3 }] }
+    const start = new Date(daysFromToday(-3) + 'T09:00:00').getTime()
+    setS({ queue: null, routines: [...routines, r], workouts: [{ id: 'w', d: daysFromToday(-3), start, end: start + 3600000, routineIds: ['push'], name: 'Push', entries: [] }] })
+    dayOverrideSheet(todayISO())
+    const card = rowOf(renderTop(), 'Push')
+    expect(card.querySelector('.pick-ex').textContent.split(' · ')).toHaveLength(2)
+    expect(card.querySelectorAll('.mchip').length).toBeGreaterThan(0)
+    expect(card.querySelector('.pick-last').textContent).toMatch(/3 days ago/)
+    expect(rowOf(renderTop(), 'Core').querySelector('.pick-last')).toBeNull()
   })
 })

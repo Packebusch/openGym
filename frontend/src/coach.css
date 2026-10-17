@@ -173,6 +173,9 @@
   background:color-mix(in srgb,var(--bg) 88%,transparent);
   -webkit-backdrop-filter:saturate(180%) blur(12px);backdrop-filter:saturate(180%) blur(12px)
 }
+/* Android 15 draws edge to edge and never resizes for the keyboard (lib/native-keyboard.js):
+   stand on the keys instead of under them, and drop the navigation-bar inset they cover. */
+:root[data-native-kb] .composer{bottom:var(--native-kb);padding-bottom:10px}
 .composer-in{max-width:560px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
 .composer textarea{
   flex:1;min-height:44px;max-height:120px;resize:none;border-radius:22px;padding:11px 16px;

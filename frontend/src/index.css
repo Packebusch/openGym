@@ -67,9 +67,13 @@
   /* height of the connection indicator under the status bar, 0 while there is none — set by
      components/SyncBanner.jsx. Whatever starts at the top of the screen starts below it. */
   --conn:0px;
+
+  /* native date/time pickers, selects, scrollbars and autofill follow the theme */
+  color-scheme:dark;
 }
 
 :root[data-theme="light"] {
+  color-scheme:light;
   --bg:        #f2f2f7;
   --bg-el:     #f7f7fa;
   --surface:   #ffffff;
@@ -1527,7 +1531,10 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   animation:sheetup .34s var(--ease);
   overscroll-behavior:contain;touch-action:pan-y;will-change:transform;
 }
-.sheet:has(.picker-search){
+/* Lifted above the keyboard: the picker, and every sheet whose text field useSheetKeyboard
+   (lib/use-sheet-keyboard.js) or SelectSheet has synced — the custom-exercise form and the note
+   sheets have no .picker-search, and used to sit under the keys. */
+.sheet:has(.picker-search),.sheet[style*="--picker-keyboard-bottom"]{
   bottom:max(var(--picker-keyboard-bottom,0px),var(--native-kb,0px));
   /* with the keyboard up the sheet is capped by the visual viewport — which still starts
      under the notch, hence the inset here too */

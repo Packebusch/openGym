@@ -124,7 +124,7 @@ describe('the two halves agree', () => {
 
   it('every sheet stands on the keyboard and the picker takes the larger lift', () => {
     expect(css).toMatch(/:root\[data-native-kb\] \.sheet\{\s*bottom:max\(var\(--picker-keyboard-bottom,0px\),var\(--native-kb,0px\)\);/)
-    expect(css).toMatch(/\.sheet:has\(\.picker-search\)\{\s*bottom:max\(var\(--picker-keyboard-bottom,0px\),var\(--native-kb,0px\)\);/)
+    expect(css).toMatch(/\.sheet:has\(\.picker-search\),\.sheet\[style\*=\"--picker-keyboard-bottom\"\]\{\s*bottom:max\(var\(--picker-keyboard-bottom,0px\),var\(--native-kb,0px\)\);/)
     expect(css).toMatch(/max-height:min\(90vh,calc\(100dvh - var\(--sat\) - 8px - var\(--native-kb,0px\)\)\)/)
   })
 

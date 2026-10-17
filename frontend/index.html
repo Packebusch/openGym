@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+  // Pinch-zoom stays on everywhere. iOS alone zooms the page in when a field under 16px takes
+  // focus, and the set rows' numbers drop to 13-14px on narrow phones; maximum-scale stops that
+  // auto-zoom there, and iOS (10+) ignores it for pinch. Android honours it for pinch too, so it
+  // is not set there.
+  if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+    document.querySelector('meta[name=viewport]').content += ',maximum-scale=1';
+</script>
 <script>
   // Set direction before first paint so an Arabic profile never flashes as LTR.
   // The app re-applies this on every language change (lib/i18n.js setLang).
@@ -16,7 +24,7 @@
 </script>
 <title>openGym</title>
 <meta name="description" content="Personal gym & body weight tracker">
-<meta name="theme-color" content="#0c0e12">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

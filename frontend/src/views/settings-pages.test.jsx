@@ -92,7 +92,7 @@ describe('the root', () => {
     expect(titles()).toEqual(['Guest', 'Workout', 'Timer alerts', 'Plan & schedule', 'Units & language', 'Equipment', 'Look & Home', 'Data & backup', 'About & updates'])
     expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Focus')
     expect(rowTitled('Timer alerts').querySelector('.lrow-v').textContent).toBe('Sound · Vibrate')
-    expect(rowTitled('Plan & schedule').querySelector('.lrow-v').textContent).toMatch(/^Fixed Week · Mon/)
+    expect(rowTitled('Plan & schedule').querySelector('.lrow-v').textContent).toMatch(/^By weekday · Mon/)
     expect(rowTitled('Units & language').querySelector('.lrow-v').textContent).toBe('kg · English')
     expect(rowTitled('Equipment').querySelector('.lrow-v').textContent).toBe('Everything')
     expect(rowTitled('About & updates').querySelector('.lrow-v').textContent).toMatch(/^v\d|^vtest/)
@@ -412,7 +412,7 @@ describe('searchSettings', () => {
       await setLang('de')
       const first = q => searchSettings(q, guestWeb, t)[0]?.title
       expect(first('Dunkel')).toBe('Theme')
-      expect(first('Feste Woche')).toBe('How you train')
+      expect(first('Nach Wochentag')).toBe('How you train')
       expect(first('Wochenstart')).toBe('Week starts on')
       expect(first('Übersicht')).toBe('Layout')
       expect(first('wischen')).toBe('Swipe actions')

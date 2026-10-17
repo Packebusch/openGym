@@ -136,7 +136,7 @@ describe('Home — coach week progress row', () => {
     expect(host.querySelector('.week')).toBeNull()
     expect(host.querySelectorAll('.wday').length).toBe(0)
     expect(host.querySelector('.queue')).toBeNull()
-    expect(host.textContent).toContain('No rotation yet')
+    expect(host.textContent).toContain('Nothing in order yet')
     expect(todayTitle()).toBe('Rest day')
     expect(host.querySelector('.hero .ss')).toBeNull()
   })
@@ -157,9 +157,9 @@ describe('Home — coach week progress row', () => {
       workouts: [logged('d1'), logged('d2'), logged('d3')],
     })
     mount()
-    expect(status()).toBe('Round complete')
+    expect(status()).toBe('All done, starting from the top')
     // your own loop counts in rounds, like Plan; a coach week keeps the bare count (above)
-    expect(host.querySelectorAll('.queue .row .small')[1].textContent).toBe('3 of 3 done this round.')
+    expect(host.querySelectorAll('.queue .row .small')[1].textContent).toBe('3 of 3 done, then it starts from the top.')
   })
 
   it('a managed pass waiting on its startsOn says so without naming a coach week', () => {
@@ -169,7 +169,7 @@ describe('Home — coach week progress row', () => {
       rotation: { id: 'r1', sequence: ['d1', 'd2', 'd3'], label: 'US W1' },
     })
     mount()
-    expect(status()).toBe('Next round starts ' + fmtDate(startsOn, true) + '.')
+    expect(status()).toBe('Starts from the top ' + fmtDate(startsOn, true) + '.')
   })
 
   it('own routines on the weekday ride along beside the queue session', () => {
@@ -223,7 +223,7 @@ describe('Home — coach week progress row', () => {
     })
     mount()
     expect(card()).toMatch(/^2 \/ 4 this week · 2 workouts total$/)
-    expect(host.querySelectorAll('.queue .row .small')[1].textContent).toBe('1 of 3 done this round.')
+    expect(host.querySelectorAll('.queue .row .small')[1].textContent).toBe('1 of 3 done, then it starts from the top.')
   })
 
   it('without a queue the weekday dots are back', () => {
@@ -330,8 +330,8 @@ describe('Home — the today row follows today\'s plan, not just the last sessio
   it('Start new pass after a session today: the pass runs today, from its first session', () => {
     const now = Date.now()
     setS({
-      rotation: { id: 'rot', sequence: ['d1', 'd2', 'd3'], label: 'Rotation' },
-      queue: { ids: ['d1', 'd2', 'd3'], since: now - 1000, startsOn: today, label: 'Rotation', rotationId: 'rot', strict: true },
+      rotation: { id: 'rot', sequence: ['d1', 'd2', 'd3'], label: 'In order' },
+      queue: { ids: ['d1', 'd2', 'd3'], since: now - 1000, startsOn: today, label: 'In order', rotationId: 'rot', strict: true },
       workouts: [at('d1', now - 3600000)],
     })
     mount()
@@ -344,17 +344,17 @@ describe('Home — the today row follows today\'s plan, not just the last sessio
 
 describe('Home: your own loop', () => {
   // QA round 2 (2026-10-06): the loop's name was saved as text in the language it was made in, so
-  // a loop made in English still read "Rotation" after switching to Arabic.
+  // a loop made in English still read "In order" after switching to Arabic.
   it('is called Rotation in the language on screen, whatever an older save kept as its name', async () => {
     const rot = { id: 'rot', sequence: ['d1', 'd2'], label: 'Rotation' }
     try {
       await setLang('de')
       setS({ rotation: rot, scheduleMode: 'rotation', queue: queue({ ids: ['d1', 'd2'], label: 'Rotation', rotationId: 'rot' }) })
       mount()
-      expect(host.querySelector('.queue .row .small').textContent).toBe('Rotation')
+      expect(host.querySelector('.queue .row .small').textContent).toBe('Der Reihe nach')
       setS({ rotation: { ...rot, label: '' }, scheduleMode: 'rotation', queue: queue({ ids: ['d1', 'd2'], label: '', rotationId: 'rot' }) })
       mount()
-      expect(host.querySelector('.queue .row .small').textContent).toBe('Rotation')
+      expect(host.querySelector('.queue .row .small').textContent).toBe('Der Reihe nach')
     } finally { await act(() => setLang('en')) }
     // A coach's week keeps the name its planner gave it.
     setS()

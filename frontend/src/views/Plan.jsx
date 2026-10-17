@@ -83,7 +83,7 @@ export function takeOutOfLoop(id, setSeq, seq, label) {
   const mark = loopMark(after)
   const marks = undoMarks(before, after)
   const name = before.routines.find(r => r.id === id)?.name ?? id
-  useUI.getState().toast(t('“{0}” is out of the loop.', name), { action: t('Undo'), onAction: () => undoTakeOut({ id, at, label, snap, mark, marks }) })
+  useUI.getState().toast(t('“{0}” is out of the order.', name), { action: t('Undo'), onAction: () => undoTakeOut({ id, at, label, snap, mark, marks }) })
   return true
 }
 // What the loop looked like right after a removal: the saved loop, the pass and the mode switch.
@@ -171,7 +171,7 @@ export default function Plan() {
 
   return <div className="narrow plan">
     <div className="hdr">
-      <div><h1>{t('Plan')}</h1><div className="sub">{mode === 'rotation' ? t('Your routines in a loop') : t('Your weekly routine')}</div></div>
+      <div><h1>{t('Plan')}</h1><div className="sub">{mode === 'rotation' ? t('Your routines, in order') : t('Your weekly routine')}</div></div>
       <button className="iconbtn" onClick={openMenu} aria-label={t('Plan options')} title={t('Plan options')}><Icon name="share" /></button>
     </div>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
@@ -194,7 +194,7 @@ function Schedule({ S, update, nav, mode }) {
      `startsOn` carry over, so progress already logged survives a reorder. */
   const liveQ = queueOf(S)
   const seq = liveQ?.ids ?? rotationIds(S)
-  // A loop the app makes has no name of its own: Home shows it as 'Rotation' in the language on
+  // A loop the app makes has no name of its own: Home shows it as 'In order' in the language on
   // screen. Stored as text, it stayed in the language it was made in (QA 2026-10-06).
   const seqLabel = liveQ?.label || S.rotation?.label || ''
   // Ownership, not presence: a planner's queue has no rotationId, or one that does not match the
@@ -212,9 +212,9 @@ function Schedule({ S, update, nav, mode }) {
     if (v === 'rotation') { update(s => { chooseRotation(s) }); return }
     if (!liveQ) { update(s => { chooseFixedWeek(s) }); return }
     confirmSheet({
-      title: t('Back to a fixed week?'),
-      message: t('The loop stops. Your weekdays stay as they are, and the loop is saved for later.'),
-      confirmText: t('Use Fixed Week'),
+      title: t('Back to weekdays?'),
+      message: t('The order stops. Your weekdays stay as they are, and the order is saved for later.'),
+      confirmText: t('Use weekdays'),
       onConfirm: () => update(s => { chooseFixedWeek(s) }),
     })
   }
@@ -234,7 +234,7 @@ function Schedule({ S, update, nav, mode }) {
   const takeOut = id => takeOutOfLoop(id, setSeq, seq, seqLabel)
   const swipe = workoutControls(S).swipeSets && !external
   const addToSeq = () => menuSheet({
-    title: t('Add to the rotation'),
+    title: t('Add to the order'),
     items: S.routines.filter(r => !seq.includes(r.id)).map(r => ({
       icon: glyphOf(r.emoji), label: r.name, onClick: () => setSeq([...seq, r.id]),
     })),
@@ -248,10 +248,10 @@ function Schedule({ S, update, nav, mode }) {
   const ownSeq = S.rotation?.sequence || []
   const replacesOwn = ownSeq.length > 0 && (ownSeq.length !== seq.length || ownSeq.some((id, i) => id !== seq[i]))
   const adopt = () => confirmSheet({
-    title: t('Use this rotation?'),
+    title: t('Take over your coach’s plan?'),
     message: t('Your coach gives up control of this week: openGym owns the queue from here on and repeats these sessions by itself once they are all done. A new week from the coach’s app would replace this rotation.')
-      + (replacesOwn ? ' ' + t('Your own loop gets replaced.') : ''),
-    confirmText: t('Use this rotation'),
+      + (replacesOwn ? ' ' + t('Your own order gets replaced.') : ''),
+    confirmText: t('Take it over'),
     onConfirm: () => update(s => saveRotation(s, seq, '')),
   })
 
@@ -283,14 +283,14 @@ function Schedule({ S, update, nav, mode }) {
 
   return <>
     <Section className="plan-mode" footer={mode === 'rotation'
-      ? t('Routines in a loop. Whatever is next stays next until you train it, whatever the day.')
+      ? t('Your routines in order. Whatever is up next stays up next until you train it, whatever the day.')
       : t('The same routines on the same weekdays, every week.')}>
       <Row icon="repeat" iconTint="var(--orange)" title={t('How you train')}>
         {/* A planner's own queue is not this app's to switch off: text, not a control. */}
         {external
-          ? <span className="small dim plan-mode-locked">{t('Rotation')} · {t('Externally managed')}</span>
+          ? <span className="small dim plan-mode-locked">{t('In order')} · {t('From your coach')}</span>
           : <Segmented className="seg-inline" value={mode} onChange={setMode}
-              options={[{ value: 'week', label: t('Fixed Week') }, { value: 'rotation', label: t('Rotation') }]} />}
+              options={[{ value: 'week', label: t('By weekday') }, { value: 'rotation', label: t('In order') }]} />}
       </Row>
     </Section>
 
@@ -302,7 +302,7 @@ function Schedule({ S, update, nav, mode }) {
     {/* A queue payload that arrived unusable: a fix-up, shown whichever way you train. Giving it
         up also gives up S.scheduleMode='rotation', or the loop would sit there with no queue. */}
     {recovery && <div className="empty">
-      {t('This rotation couldn’t be read. Another device may have written it.')}
+      {t('This order couldn’t be read. Another device may have written it.')}
       <div style={{ marginTop: 10 }}>
         <Button size="sm" variant="tinted" aria-label={t('Discard it')} onClick={() => update(s => { s.queue = null; s.scheduleMode = 'week' })}>{t('Discard it')}</Button>
       </div>
@@ -314,12 +314,12 @@ function Schedule({ S, update, nav, mode }) {
       <p className="sect-f">{t('Want two routines on one day? Tap the day and pick both.')}</p>
     </> : <div className="rotation">
       <div className="row between plan-sec-h">
-        <h4 className="sec">{t('The loop')}{external && <span className="tag" style={{ marginInlineStart: 8 }}>{t('Externally managed')}</span>}</h4>
+        <h4 className="sec">{t('Up next, in order')}{external && <span className="tag" style={{ marginInlineStart: 8 }}>{t('From your coach')}</span>}</h4>
         {/* A coach's own queue is read-only here: the one way to change what it holds is to
-            adopt it first ("Use this rotation" below), never a tap on one of its rows. */}
+            adopt it first ("Take it over" below), never a tap on one of its rows. */}
         {!external && <div className="row plan-sec-acts" style={{ gap: 6 }}>
           {seq.length > 0 && <button className="plan-textbtn" aria-pressed={editLoop} onClick={() => setEditLoop(e => !e)}>{editLoop ? t('Done') : t('Edit')}</button>}
-          <Button size="sm" variant="tinted" icon="plus" aria-label={t('Add routine to the rotation')}
+          <Button size="sm" variant="tinted" icon="plus" aria-label={t('Add a routine to the order')}
             disabled={S.routines.every(r => seq.includes(r.id))} onClick={addToSeq}>{t('Add')}</Button>
         </div>}
       </div>
@@ -347,20 +347,20 @@ function Schedule({ S, update, nav, mode }) {
               onDelete={() => takeOut(id)}>{row}</SwipeRow>
             : row
         })}
-      </div> : <div className="empty">{t('No rotation yet. Add routines in the order you want to train them. The first one you haven’t logged stays up next.')}</div>}
+      </div> : <div className="empty">{t('Nothing here yet. Add routines in the order you want to train them. The first one you haven’t logged stays up next.')}</div>}
       {seq.length > 0 && <p className="sect-f">
-        {qv ? (qv.waiting ? t('Next round starts {0}.', fmtDate(qv.startsOn, true)) : t('{0} of {1} done this round.', doneCount, qv.items.length)) + ' ' : ''}
+        {qv ? (qv.waiting ? t('Starts from the top {0}.', fmtDate(qv.startsOn, true)) : t('{0} of {1} done, then it starts from the top.', doneCount, qv.items.length)) + ' ' : ''}
         {external ? '' : editing ? t('Drag to reorder. Tap the minus to take one out.') : t('Trained out of order? Just pick another routine on Home.')}
       </p>}
       <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-        {external && <Button size="sm" variant="tinted" aria-label={t('Use this rotation')} onClick={adopt}>{t('Use this rotation')}</Button>}
+        {external && <Button size="sm" variant="tinted" aria-label={t('Take it over')} onClick={adopt}>{t('Take it over')}</Button>}
         {/* Throws the current round away and starts the saved loop again today; nothing logged
             before this moment counts for it (startNewPass, the strict pass). */}
-        {!!liveQ && !external && <Button size="sm" icon="reset" aria-label={t('Start the loop over')}
-          onClick={() => update(s => startNewPass(s))}>{t('Start the loop over')}</Button>}
+        {!!liveQ && !external && <Button size="sm" icon="reset" aria-label={t('Start from the top')}
+          onClick={() => update(s => startNewPass(s))}>{t('Start from the top')}</Button>}
         {/* Rotation chosen and a loop saved, but no round running (it was stopped elsewhere). */}
-        {!liveQ && !recovery && seq.length > 0 && <Button size="sm" variant="tinted" icon="play" aria-label={t('Start the loop')}
-          onClick={() => update(s => startPass(s))}>{t('Start the loop')}</Button>}
+        {!liveQ && !recovery && seq.length > 0 && <Button size="sm" variant="tinted" icon="play" aria-label={t('Start')}
+          onClick={() => update(s => startPass(s))}>{t('Start')}</Button>}
       </div>
       {/* The weekday routines ride along beside a loop (effectiveRoutineIds, history.js) and feed
           the same tally (weekTally, queue.js), so the days that still add one stay in sight; a
@@ -368,7 +368,7 @@ function Schedule({ S, update, nav, mode }) {
       {plannedDays.length > 0 && <>
         <h4 className="sec">{t('Also on fixed days')}</h4>
         <div className="list plan-week">{plannedDays.map(d => dayRow(d, extraRoutines(d)))}</div>
-        <p className="sect-f">{t('These count on top of the loop. Tap a day to change or clear it.')}</p>
+        <p className="sect-f">{t('These count on top of the order. Tap a day to change or clear it.')}</p>
       </>}
     </div>}
 

@@ -66,51 +66,51 @@ afterEach(() => { act(() => root.unmount()); host.remove() })
 
 const mount = over => { mocks.S = baseS(over); act(() => root.render(<Settings page="plan" />)) }
 // the two-option Segmented rendered by the How you train row
-const seg = () => [...host.querySelectorAll('button')].filter(b => ['Fixed Week', 'Rotation'].includes(b.textContent))
+const seg = () => [...host.querySelectorAll('button')].filter(b => ['By weekday', 'In order'].includes(b.textContent))
 const pick = label => act(() => seg().find(b => b.textContent === label).dispatchEvent(new MouseEvent('click', { bubbles: true })))
 const selected = () => seg().find(b => b.className.includes('on'))?.textContent
-const buildRow = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Build your loop in Plan'))
+const buildRow = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Build your order in Plan'))
 
 describe('Settings — How you train (Plan & schedule)', () => {
   it('selects Fixed Week without a usable queue, Rotation with one this app manages', () => {
     mount()
-    expect(selected()).toBe('Fixed Week')
+    expect(selected()).toBe('By weekday')
     mount({
-      queue: { ids: ['a', 'b'], since: Date.now(), startsOn: todayISO(), label: 'Rotation', rotationId: 'r1' },
-      rotation: { id: 'r1', sequence: ['a', 'b'], label: 'Rotation' },
+      queue: { ids: ['a', 'b'], since: Date.now(), startsOn: todayISO(), label: 'In order', rotationId: 'r1' },
+      rotation: { id: 'r1', sequence: ['a', 'b'], label: 'In order' },
     })
-    expect(selected()).toBe('Rotation')
+    expect(selected()).toBe('In order')
   })
 
   it('a malformed queue selects Fixed Week, never Rotation', () => {
     mount({ queue: { ids: ['gone'], since: Date.now() } })
-    expect(selected()).toBe('Fixed Week')
+    expect(selected()).toBe('By weekday')
   })
 
   it('Rotation stays selected on S.scheduleMode alone, with no live queue at all', () => {
     mount({ scheduleMode: 'rotation' })
-    expect(selected()).toBe('Rotation')
+    expect(selected()).toBe('In order')
   })
 
   it('a planner-written queue makes How you train read-only text, not a control to flip', () => {
     // No rotationId, and no S.rotation to match it against — this app does not own the queue.
     mount({ queue: { ids: ['a', 'b'], since: Date.now(), startsOn: todayISO(), label: 'US W1' } })
     expect(seg()).toEqual([])
-    expect(host.textContent).toContain('Externally managed')
+    expect(host.textContent).toContain('From your coach')
   })
 
   it('Fixed Week asks first, then drops the pass, sweeps its future pins, and keeps the sequence', () => {
     mount({
-      queue: { ids: ['a', 'b'], since: Date.now(), startsOn: todayISO(), label: 'Rotation', rotationId: 'r1' },
-      rotation: { id: 'r1', sequence: ['a', 'b'], label: 'Rotation' },
+      queue: { ids: ['a', 'b'], since: Date.now(), startsOn: todayISO(), label: 'In order', rotationId: 'r1' },
+      rotation: { id: 'r1', sequence: ['a', 'b'], label: 'In order' },
       week: { 1: ['a'] },
       // a pin dated today names a session the dropped pass no longer has to give — left as a
       // plain override, history.js would otherwise read it as a routine choice nobody made
       dayPlan: { [todayISO()]: 'a', '2020-01-01': 'b' },
     })
-    pick('Fixed Week')
+    pick('By weekday')
     expect(mocks.S.queue).not.toBe(null)          // nothing happens before the confirmation
-    expect(confirmSheet.mock.calls[0][0]).toMatchObject({ title: 'Back to a fixed week?', confirmText: 'Use Fixed Week' })   // Plan's words
+    expect(confirmSheet.mock.calls[0][0]).toMatchObject({ title: 'Back to weekdays?', confirmText: 'Use weekdays' })   // Plan's words
     act(() => confirmSheet.mock.calls[0][0].onConfirm())
     expect(mocks.S.queue).toBe(null)
     expect(mocks.S.scheduleMode).toBe('week')
@@ -121,14 +121,14 @@ describe('Settings — How you train (Plan & schedule)', () => {
 
   it('Fixed Week with nothing running switches at once, as on Plan', () => {
     mount({ scheduleMode: 'rotation' })
-    pick('Fixed Week')
+    pick('By weekday')
     expect(confirmSheet).not.toHaveBeenCalled()
     expect(mocks.S.scheduleMode).toBe('week')
   })
 
   it('Rotation starts a fresh pass from the saved sequence', () => {
     mount({ rotation: { id: 'r1', sequence: ['a', 'b'], label: 'My split' } })
-    pick('Rotation')
+    pick('In order')
     expect(mocks.S.queue.ids).toEqual(['a', 'b'])
     expect(mocks.S.queue.rotationId).toBe('r1')
     expect(mocks.S.queue.startsOn).toBe(todayISO())
@@ -139,7 +139,7 @@ describe('Settings — How you train (Plan & schedule)', () => {
   it('Rotation with nothing saved stays selected and stays here, with a row that leads to Plan', () => {
     mount()
     expect(buildRow()).toBeUndefined()
-    pick('Rotation')
+    pick('In order')
     expect(mocks.S.queue).toBe(null)
     expect(mocks.S.scheduleMode).toBe('rotation')
     expect(mocks.nav).not.toHaveBeenCalled()
@@ -150,7 +150,7 @@ describe('Settings — How you train (Plan & schedule)', () => {
 
   it('a malformed queue is not started over; the row leads to Plan, which does the recovery', () => {
     mount({ queue: { ids: ['gone'], since: Date.now() }, rotation: { id: 'r1', sequence: ['a'], label: 'x' } })
-    pick('Rotation')
+    pick('In order')
     expect(mocks.S.queue.ids).toEqual(['gone'])   // untouched: Plan does the recovery
     expect(mocks.nav).not.toHaveBeenCalled()
     act(() => root.render(<Settings page="plan" key="again" />))

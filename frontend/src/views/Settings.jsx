@@ -135,9 +135,9 @@ export default function Settings({ page = null, find = null, via = null }) {
       // is live (below), but the guard stays here too rather than trust the render alone.
       if (!liveQ) { update(s => { chooseFixedWeek(s) }); return }
       confirmSheet({
-        title: t('Back to a fixed week?'),
-        message: t('The loop stops. Your weekdays stay as they are, and the loop is saved for later.'),
-        confirmText: t('Use Fixed Week'),
+        title: t('Back to weekdays?'),
+        message: t('The order stops. Your weekdays stay as they are, and the order is saved for later.'),
+        confirmText: t('Use weekdays'),
         onConfirm: () => update(s => { chooseFixedWeek(s) }),
       })
       return
@@ -414,7 +414,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     workout: () => (S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer')) + ' · ' + layoutLabel,
     alerts: () => [S.sound ? t('Sound') : null, canVibrate && S.vibrate !== false ? t('Vibrate') : null, S.timerFlash ? t('Flash') : null].filter(Boolean).join(' · ') || t('Silent'),
     reminders: () => (S.reminder?.on ? (S.reminder.time || DEF.reminder?.time || '') : t('Off')),
-    plan: () => (mode === 'rotation' ? t('Rotation') : t('Fixed Week')) + ' · ' + shortWeekday(weekStartOf(S) === SUNDAY ? 0 : 1),
+    plan: () => (mode === 'rotation' ? t('In order') : t('By weekday')) + ' · ' + shortWeekday(weekStartOf(S) === SUNDAY ? 0 : 1),
     units: () => (S.unit || 'kg') + ' · ' + (LANGS[lang] || lang),
     equipment: () => (S.equipFilterOn && activeProfile ? activeProfile.name : t('Everything')),
     look: () => themeLabel + ' · ' + accentLabel(S),
@@ -616,13 +616,13 @@ export default function Settings({ page = null, find = null, via = null }) {
             Derived from the queue, never stored. */}
         <Row icon="repeat" iconTint="var(--orange)" title={t('How you train')}>
           {externalQ
-            ? <span className="small dim">{t('Rotation')} · {t('Externally managed')}</span>
+            ? <span className="small dim">{t('In order')} · {t('From your coach')}</span>
             : <Segmented className="seg-inline"
-                options={[{ value: 'week', label: t('Fixed Week') }, { value: 'rotation', label: t('Rotation') }]}
+                options={[{ value: 'week', label: t('By weekday') }, { value: 'rotation', label: t('In order') }]}
                 value={mode} onChange={setScheduleMode} />}
         </Row>
         {/* Rotation chosen with no loop running yet: the loop is built on Plan. */}
-        {mode === 'rotation' && !liveQ && <Row icon="calendar" iconTint="var(--orange)" title={t('Build your loop in Plan')}
+        {mode === 'rotation' && !liveQ && <Row icon="calendar" iconTint="var(--orange)" title={t('Build your order in Plan')}
           accessory="chevron" onClick={() => nav('/plan')} />}
         {/* Monday or Sunday: the Plan list, the Home strip, the calendar grid and every "this
             week" total follow it. Stored as a getDay() index (see lib/format.js). */}

@@ -112,7 +112,7 @@ export function saveRotation(s, ids, label, today = todayISO(), now = Date.now()
 }
 
 /**
- * Ends the current pass without touching the saved sequence — "Use Fixed Week", or the editor
+ * Ends the current pass without touching the saved sequence — "Use weekdays", or the editor
  * emptied down to nothing. Sweeps the same future pins saveRotation does, so a dropped pass never
  * resurfaces as a plain routine override (history.js) once the weekday plan is back in charge.
  */

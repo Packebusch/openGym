@@ -70,7 +70,7 @@ const subtitle = () => host.querySelector('.hdr .sub').textContent
 describe('Plan — How you train', () => {
   it('nothing saved: Fixed Week with the weekdays, and no rotation buttons of its own', () => {
     mount()
-    expect(selectedMode()).toBe('Fixed Week')
+    expect(selectedMode()).toBe('By weekday')
     expect(headings()).toContain('This week')
     expect(subtitle()).toBe('Your weekly routine')
     expect(rows()).toEqual([])
@@ -81,23 +81,23 @@ describe('Plan — How you train', () => {
 
   it('Rotation with nothing saved holds the choice and shows an empty loop instead of the week', () => {
     mount()
-    pickMode('Rotation')
+    pickMode('In order')
     expect(mocks.S.scheduleMode).toBe('rotation')
     expect(mocks.S.queue).toBe(null)
     remount()
-    expect(selectedMode()).toBe('Rotation')
-    expect(headings()).toContain('The loop')
+    expect(selectedMode()).toBe('In order')
+    expect(headings()).toContain('Up next, in order')
     expect(headings()).not.toContain('This week')
-    expect(host.textContent).toContain('No rotation yet.')
+    expect(host.textContent).toContain('Nothing here yet.')
     // the subtitle stops saying "weekly" once you train in a loop
-    expect(subtitle()).toBe('Your routines in a loop')
+    expect(subtitle()).toBe('Your routines, in order')
   })
 
   it('the loop header can wrap so Add never runs off a 320 px screen', async () => {
     mount({ scheduleMode: 'rotation' })
     const acts = host.querySelector('.rotation .plan-sec-h > .plan-sec-acts')
     expect(acts).toBeTruthy()
-    expect(acts.querySelector('button[aria-label="Add routine to the rotation"]')).toBeTruthy()
+    expect(acts.querySelector('button[aria-label="Add a routine to the order"]')).toBeTruthy()
     const { readFileSync } = await import('node:fs')
     const css = readFileSync(process.cwd() + '/src/index.css', 'utf8')
     expect(css).toMatch(/^\.plan-sec-h\{[^}]*flex-wrap:wrap/m)
@@ -106,22 +106,22 @@ describe('Plan — How you train', () => {
 
   it('back to Fixed Week with nothing running needs no confirmation', () => {
     mount({ scheduleMode: 'rotation' })
-    pickMode('Fixed Week')
+    pickMode('By weekday')
     expect(confirmSheet).not.toHaveBeenCalled()
     expect(mocks.S.scheduleMode).toBe('week')
   })
 
   it('Rotation starts a pass from a saved loop', () => {
     mount({ rotation: saved })
-    pickMode('Rotation')
+    pickMode('In order')
     expect(mocks.S.queue).toMatchObject({ ids: ['a', 'b'], rotationId: 'r1', startsOn: todayISO() })
     expect(mocks.S.scheduleMode).toBe('rotation')
   })
 
   it('leaving a running loop asks first, then keeps the loop and the weekdays', () => {
     mount({ queue: live({ rotationId: 'r1' }), rotation: saved, dayPlan: { [todayISO()]: 'a' } })
-    expect(selectedMode()).toBe('Rotation')
-    pickMode('Fixed Week')
+    expect(selectedMode()).toBe('In order')
+    pickMode('By weekday')
     expect(mocks.S.queue).not.toBe(null)
     expect(confirmSheet).toHaveBeenCalledTimes(1)
     act(() => confirmSheet.mock.calls[0][0].onConfirm())
@@ -139,7 +139,7 @@ describe('Plan — the loop', () => {
     expect(names()).toEqual(['A', 'B'])
     expect(rows().map(r => r.querySelector('.ss').textContent)).toEqual(['Up next', 'Later'])
     expect(rows()[0].querySelector('.plan-order').className).toContain('next')
-    expect(host.textContent).toContain('0 of 2 done this round.')
+    expect(host.textContent).toContain('0 of 2 done, then it starts from the top.')
     // week[1] = ['c'] rides along beside the pass (effectiveRoutineIds), so it stays in sight
     expect(headings()).toContain('Also on fixed days')
     expect(host.querySelector('.plan-day[data-day="1"] .tt').textContent).toBe('C')
@@ -164,12 +164,12 @@ describe('Plan — the loop', () => {
       workouts: [{ id: 'w1', d: todayISO(), start: Date.now() - 1000, routineIds: ['a'], routineId: 'a', name: 'A', entries: [] }],
     })
     expect(rows().map(r => r.querySelector('.ss').textContent)).toEqual(['Done', 'Up next'])
-    expect(host.textContent).toContain('1 of 2 done this round.')
+    expect(host.textContent).toContain('1 of 2 done, then it starts from the top.')
   })
 
   it('adding a routine offers only the ones not in the loop, and saves the pass', () => {
     mount({ queue: live({ rotationId: 'r1' }), rotation: saved })
-    click(byLabel('Add routine to the rotation'))
+    click(byLabel('Add a routine to the order'))
     const items = menuSheet.mock.calls[0][0].items
     expect(items.map(i => i.label)).toEqual(['C'])
     act(() => items[0].onClick())
@@ -212,10 +212,10 @@ describe('Plan — the loop', () => {
     expect(mocks.S.scheduleMode).toBe('rotation')
     expect(mocks.S.week).toEqual({ 1: ['c'] })
     remount()
-    expect(selectedMode()).toBe('Rotation')
-    expect(host.textContent).toContain('No rotation yet.')
+    expect(selectedMode()).toBe('In order')
+    expect(host.textContent).toContain('Nothing here yet.')
     // swapping the only routine: add another one back in, same rotation id
-    click(byLabel('Add routine to the rotation'))
+    click(byLabel('Add a routine to the order'))
     act(() => menuSheet.mock.calls.at(-1)[0].items.find(i => i.label === 'B').onClick())
     expect(mocks.S.rotation).toMatchObject({ id: 'r1', sequence: ['b'] })
     expect(mocks.S.queue.ids).toEqual(['b'])
@@ -223,7 +223,7 @@ describe('Plan — the loop', () => {
 
   it('a loop built here saves no name of its own, so it follows the language on screen', () => {
     mount({ scheduleMode: 'rotation' })
-    click(byLabel('Add routine to the rotation'))
+    click(byLabel('Add a routine to the order'))
     act(() => menuSheet.mock.calls.at(-1)[0].items.find(i => i.label === 'A').onClick())
     expect(mocks.S.rotation.sequence).toEqual(['a'])
     expect(mocks.S.rotation.label).toBe('')
@@ -235,7 +235,7 @@ describe('Plan — the loop', () => {
       queue: live({ since: Date.now() - 5 * 86400000, startsOn: '2026-09-01', rotationId: 'r1' }),
       rotation: saved,
     })
-    click(byLabel('Start the loop over'))
+    click(byLabel('Start from the top'))
     expect(mocks.S.queue.startsOn).toBe(todayISO())
     expect(mocks.S.queue.ids).toEqual(['a', 'b'])
     expect(mocks.S.queue.strict).toBe(true)
@@ -245,14 +245,14 @@ describe('Plan — the loop', () => {
     const d = new Date(); d.setDate(d.getDate() + 1)
     const tomorrow = isoOf(d)
     mount({ queue: live({ startsOn: tomorrow, rotationId: 'r1' }), rotation: saved })
-    expect(host.querySelector('.rotation .sect-f').textContent).toBe('Next round starts ' + fmtDate(tomorrow, true) + '. Trained out of order? Just pick another routine on Home.')
+    expect(host.querySelector('.rotation .sect-f').textContent).toBe('Starts from the top ' + fmtDate(tomorrow, true) + '. Trained out of order? Just pick another routine on Home.')
   })
 
   it('a saved loop with no round running offers Start the loop', () => {
     mount({ rotation: saved, scheduleMode: 'rotation' })
     expect(names()).toEqual(['A', 'B'])
-    expect(byLabel('Start the loop over')).toBeUndefined()
-    click(byLabel('Start the loop'))
+    expect(byLabel('Start from the top')).toBeUndefined()
+    click(byLabel('Start'))
     expect(mocks.S.queue.ids).toEqual(['a', 'b'])
     expect(mocks.S.queue.rotationId).toBe('r1')
   })
@@ -262,40 +262,40 @@ describe('Plan — someone else’s queue, and a broken one', () => {
   it('an externally written pass is locked: no mode control, no edits, adoption behind a confirm', () => {
     mount({ queue: live(), scheduleMode: 'rotation' })   // no rotationId, no rotation
     expect(modeButtons()).toEqual([])
-    expect(host.querySelector('.plan-mode').textContent).toContain('Externally managed')
+    expect(host.querySelector('.plan-mode').textContent).toContain('From your coach')
     expect(byLabel('Build a rotation instead')).toBeUndefined()
     expect(byLabel('Edit')).toBeUndefined()
-    expect(byLabel('Add routine to the rotation')).toBeUndefined()
+    expect(byLabel('Add a routine to the order')).toBeUndefined()
     expect(rows()[0].querySelectorAll('button').length).toBe(0)
     expect(headings()).toContain('Also on fixed days')
-    click(byLabel('Use this rotation'))
+    click(byLabel('Take it over'))
     expect(mocks.S.rotation).toBe(null)            // not adopted yet — waiting on the confirm
     act(() => confirmSheet.mock.calls.at(-1)[0].onConfirm())
     expect(mocks.S.rotation.sequence).toEqual(['a', 'b'])
     expect(mocks.S.queue.rotationId).toBe(mocks.S.rotation.id)
     // Adopting drops the planner's name ("My split"): refillAfter would otherwise repeat it on
     // every pass this app generates on its own. It saves no name at all, so Home shows the word
-    // in whatever language is on screen (QA 2026-10-06: a saved 'Rotation' stayed English).
+    // in whatever language is on screen (QA 2026-10-06: a saved 'In order' stayed English).
     expect(mocks.S.rotation.label).toBe('')
     expect(mocks.S.queue.label).toBe('')
     remount()
-    expect(host.textContent).not.toContain('Externally managed')
-    expect(selectedMode()).toBe('Rotation')
+    expect(host.textContent).not.toContain('From your coach')
+    expect(selectedMode()).toBe('In order')
   })
 
   it('adopting a coach queue over a different loop of your own says the loop gets replaced', () => {
     mount({ queue: live({ ids: ['b', 'c'] }), rotation: { id: 'r0', sequence: ['a', 'b'], label: 'Mine' }, scheduleMode: 'rotation' })
-    click(byLabel('Use this rotation'))
-    expect(confirmSheet.mock.calls.at(-1)[0].message).toMatch(/ Your own loop gets replaced\.$/)
+    click(byLabel('Take it over'))
+    expect(confirmSheet.mock.calls.at(-1)[0].message).toMatch(/ Your own order gets replaced\.$/)
     // the same sessions in the same order: nothing of yours is lost, nothing to warn about
     mount({ queue: live({ ids: ['a', 'b'] }), rotation: { id: 'r0', sequence: ['a', 'b'], label: 'Mine' }, scheduleMode: 'rotation' })
-    click(byLabel('Use this rotation'))
-    expect(confirmSheet.mock.calls.at(-1)[0].message).not.toContain('Your own loop')
+    click(byLabel('Take it over'))
+    expect(confirmSheet.mock.calls.at(-1)[0].message).not.toContain('Your own order')
   })
 
   it('a malformed queue offers recovery instead of a loop full of nothing', () => {
     mount({ queue: { ids: ['gone'], since: Date.now() } })
-    expect(host.textContent).toContain('This rotation couldn’t be read')
+    expect(host.textContent).toContain('This order couldn’t be read')
     click(byLabel('Discard it'))
     expect(mocks.S.queue).toBe(null)
   })
@@ -307,18 +307,18 @@ describe('Plan — someone else’s queue, and a broken one', () => {
     expect(mocks.S.scheduleMode).toBe('week')
     remount()
     expect(headings()).toContain('This week')
-    pickMode('Rotation')
+    pickMode('In order')
     expect(mocks.S.queue.ids).toEqual(['a', 'b'])
   })
 
   it('every routine in the loop deleted still leaves a way back in, not a locked editor', () => {
     mount({ routines: [], queue: { ids: ['a', 'b'], since: Date.now() }, rotation: saved, scheduleMode: 'rotation' })
-    expect(host.textContent).toContain('This rotation couldn’t be read')
+    expect(host.textContent).toContain('This order couldn’t be read')
     click(byLabel('Discard it'))
     expect(mocks.S.scheduleMode).toBe('week')
     remount()
     // nothing in the saved loop survives, so Rotation only holds the choice: a fresh build
-    pickMode('Rotation')
+    pickMode('In order')
     expect(mocks.S.queue).toBe(null)
     expect(mocks.S.scheduleMode).toBe('rotation')
   })

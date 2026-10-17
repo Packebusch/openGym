@@ -182,7 +182,7 @@ describe('the loop', () => {
     expect(S().rotation.sequence).toEqual(['a', 'c'])
     expect(S().dayPlan).toEqual({})          // its future pin was swept with it
     expect(S().routines).toHaveLength(3)     // out of the loop, not deleted
-    expect(useUI.getState().toastMsg).toBe('“Pull A” is out of the loop.')
+    expect(useUI.getState().toastMsg).toBe('“Pull A” is out of the order.')
 
     undo()
     expect(S().queue).toEqual(loop.queue)

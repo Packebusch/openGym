@@ -2353,7 +2353,7 @@ function DayOverride({ iso, close }) {
       </div>
     </div>}
     {coach.length > 0 && <>
-      <h4 className="sec" style={{ marginTop: 0 }}>{ownLoop ? t('Your loop') : t('Coach week')}</h4>
+      <h4 className="sec" style={{ marginTop: 0 }}>{ownLoop ? t('Your order') : t('Coach week')}</h4>
       <div className="list" style={{ marginBottom: 8 }}>{coach.map(row)}</div>
       {st.routines.some(r => !remaining.includes(r.id)) && <h4 className="sec">{t('Routines')}</h4>}
     </>}

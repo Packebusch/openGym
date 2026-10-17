@@ -25,18 +25,18 @@ export default function QueueRow({ S, today, onStart, managed }) {
   const shownToday = !!next && effectiveRoutineIds(S, today, today).includes(next.id)
   // A pass this app manages refills itself (lib/rotation.js) — "ask the coach" and naming a
   // whole week are a planner's copy, wrong for a pass with no coach and no week shape at all.
-  const status = v.complete ? (managed ? t('Round complete') : t('Week complete, ask the coach'))
-    : v.waiting ? (managed ? t('Next round starts {0}.', fmtDate(v.startsOn, true)) : t('Next week starts {0}', fmtDate(v.startsOn, true)))
+  const status = v.complete ? (managed ? t('All done, starting from the top') : t('Week complete, ask the coach'))
+    : v.waiting ? (managed ? t('Starts from the top {0}.', fmtDate(v.startsOn, true)) : t('Next week starts {0}', fmtDate(v.startsOn, true)))
     : shownToday ? t('Next: {0}, today', next.name)
     : next ? t('Next: {0}', next.name)
     : t('Next: {0}', pinned.name + ' · ' + fmtDate(pinned.on, true))
   return <div className="queue">
     <div className="row between" style={{ marginBottom: 8 }}>
-      {/* Your own loop is called 'Rotation' in the language on screen: its saved name is only ever
+      {/* Your own loop is called 'In order' in the language on screen: its saved name is only ever
           the word itself, which older saves kept in the language the loop was made in. */}
-      <div className="small muted" style={{ fontWeight: 500 }}>{managed ? t('Rotation') : v.label}</div>
+      <div className="small muted" style={{ fontWeight: 500 }}>{managed ? t('In order') : v.label}</div>
       {/* Your own loop speaks in rounds, as Plan does; a coach's week keeps its plain count. */}
-      <div className="small muted">{managed ? t('{0} of {1} done this round.', v.items.length - v.remaining.length, v.items.length) : `${v.items.length - v.remaining.length} / ${v.items.length}`}</div>
+      <div className="small muted">{managed ? t('{0} of {1} done, then it starts from the top.', v.items.length - v.remaining.length, v.items.length) : `${v.items.length - v.remaining.length} / ${v.items.length}`}</div>
     </div>
     {/* The state word keeps its sentence case ("Up next", as on Plan): .chip capitalizes every
         word for the routine names, which made it "Up Next" here (QA 10-06). A pinned chip's date

@@ -501,9 +501,9 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     return (
       <div className={'stp effcell-stp' + (wc.steppers ? '' : ' plain')}
         style={color ? { color, borderColor: color, background: `color-mix(in srgb, ${color} 20%, var(--surface-2))` } : undefined}>
-        {wc.steppers && <button aria-label={t('Decrease')} onClick={() => step(-1)}><Icon name="minus" /></button>}
+        {wc.steppers && <button className="eff-step" aria-label={t('Decrease')} onClick={() => step(-1)}><Icon name="minus" /></button>}
         <button className="val" aria-label={col.hd} onClick={open}>{fmtNum(v)}</button>
-        {wc.steppers && <button aria-label={t('Increase')} onClick={() => step(1)}><Icon name="plus" /></button>}
+        {wc.steppers && <button className="eff-step" aria-label={t('Increase')} onClick={() => step(1)}><Icon name="plus" /></button>}
       </div>
     )
   }
@@ -542,9 +542,9 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     return (
       <div className={'stp effcell-stp' + (wc.steppers ? '' : ' plain')}
         style={color ? { color, borderColor: color, background: `color-mix(in srgb, ${color} 20%, var(--surface-2))` } : undefined}>
-        {wc.steppers && <button aria-label={t('Decrease')} onClick={() => step(-1)}><Icon name="minus" /></button>}
+        {wc.steppers && <button className="eff-step" aria-label={t('Decrease')} onClick={() => step(-1)}><Icon name="minus" /></button>}
         <button className="val" aria-label={col.hd} onClick={open}>{fmtNum(v)}</button>
-        {wc.steppers && <button aria-label={t('Increase')} onClick={() => step(1)}><Icon name="plus" /></button>}
+        {wc.steppers && <button className="eff-step" aria-label={t('Increase')} onClick={() => step(1)}><Icon name="plus" /></button>}
       </div>
     )
   }

@@ -148,12 +148,15 @@ describe('exercise ids this build does not know', () => {
     expectKept(useStore.getState().S)
   })
 
-  it('Stats draws it, and its exercise picker leaves out the id it has no name for', () => {
+  it('Progress lists the known lift and leaves out the id it has no name for', () => {
     seed()
     const host = render(<Stats />)
-    // Exercise progress opens on the known lift: an id with no name to show is left out of
-    // the picker (Stats.jsx exHist), not charted as a bare number.
-    expect(host.textContent).toContain('Barbell Full Squat · 100 kg')
+    // "Your lifts" (design audit, proposal 6): an id with no name to show is left off the list
+    // (Stats.jsx liftName), not listed as a bare number.
+    const rows = [...host.querySelectorAll('.lift-row')].map(r => r.textContent)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatch(/^barbell full squat100 kg/i)
+    expect(rows[0]).not.toContain(UNK)
     expectKept(useStore.getState().S)
   })
 

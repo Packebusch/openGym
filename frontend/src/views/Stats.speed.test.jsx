@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-// Stats charts cardio at its top speed per workout — in mph for a profile that reads mph
+// An exercise's page charts cardio at its top speed per workout — in mph for a profile that reads mph
 // (Discord "miles per hour"), from the km/h the sets are stored in.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import Stats from './Stats.jsx'
+import { ExerciseProgress } from './Stats.jsx'
 
 const mocks = vi.hoisted(() => ({ charts: [], S: null }))
 vi.mock('../store/useStore.js', () => ({ useStore: selector => selector({ S: mocks.S }) }))
@@ -32,7 +32,7 @@ function mount(settings) {
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
-  act(() => root.render(<Stats />))
+  act(() => root.render(<ExerciseProgress S={mocks.S} exId={BIKE} fixed />))
   return mocks.charts.find(c => c.color === 'var(--blue)')
 }
 

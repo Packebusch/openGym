@@ -38,6 +38,8 @@ const state = over => ({
 
 let host, root
 beforeEach(() => {
+  // Muscle balance, weekly volume and effort sit on Progress → Balance (design audit, proposal 6).
+  localStorage.setItem('gym_progress_view', 'balance')
   vi.useFakeTimers(); vi.setSystemTime(NOW)
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)

@@ -36,7 +36,7 @@ import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
-import Stats from './views/Stats.jsx'
+import Stats, { ExercisePage } from './views/Stats.jsx'
 import History from './views/History.jsx'
 import Muscles from './views/Muscles.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
@@ -216,6 +216,7 @@ function Shell() {
               <Route path="/plan/r/:id" element={<RoutineEdit />} />
               <Route path="/workout" element={<Workout />} />
               <Route path="/stats" element={<Stats />} />
+              <Route path="/stats/ex/:id" element={<ExercisePage />} />
               <Route path="/history" element={<History />} />
               {/* The library is a view of Plan now; the old address still lands on it. */}
               <Route path="/library" element={<Navigate to="/plan?view=exercises" replace />} />

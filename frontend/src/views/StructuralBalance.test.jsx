@@ -202,17 +202,18 @@ describe('StructuralBalance view', () => {
 })
 
 describe('the way in from Stats', () => {
-  it('is a card like the others that opens the screen, once there is a workout to read', () => {
+  it('is a row on Progress → Balance that opens the screen, once there is a workout to read', () => {
+    localStorage.setItem('gym_progress_view', 'balance')
     const host = render(Stats)
-    const card = [...host.querySelectorAll('.card')].find(c => c.querySelector('h2')?.textContent === 'Structural balance')
-    expect(card).toBeTruthy()
-    expect(card.textContent).toContain('See which lift is holding back the rest.')
-    const open = [...card.querySelectorAll('button')].find(b => b.textContent.includes('Open'))
-    act(() => open.click())
+    const row = [...host.querySelectorAll('.item')].find(c => c.querySelector('.tt')?.textContent === 'Structural balance')
+    expect(row).toBeTruthy()
+    expect(row.textContent).toContain('See which lift is holding back the rest.')
+    act(() => row.click())
     expect(navSpy).toHaveBeenCalledWith('/structural-balance')
   })
 
   it('is not offered before the first workout', () => {
+    localStorage.setItem('gym_progress_view', 'balance')
     useStore.setState({ S: clone(DEF), user: null })
     const host = render(Stats)
     expect(host.textContent).not.toContain('Structural balance')

@@ -2224,3 +2224,16 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .fr-actions{display:flex;gap:var(--sp-2);margin-top:var(--sp-5)}
 .fr-actions>.btn{flex:1}
 
+/* ------------------------------------------------ progress (design audit, 6, 7, 11) -- */
+.progress-views{margin-bottom:var(--sp-4)}
+.tiles.three{grid-template-columns:repeat(3,1fr)}
+.lift-row{gap:var(--sp-3)}
+.lift-row .spark{flex:none;color:var(--acc-text)}
+.lift-trend{flex:none;width:28px;height:28px;border-radius:14px;display:grid;place-items:center;font-size:14px}
+.lift-trend.up{color:var(--ok);background:var(--ok-soft)}
+.lift-trend.down{color:var(--goal);background:color-mix(in srgb,var(--yellow) 16%,transparent)}
+.lift-trend.flat{color:var(--label-3);background:var(--surface-2)}
+.ex-progress{margin-top:0}
+.history-search{margin-bottom:var(--sp-3)}
+.history-month .sec .dim{font-weight:400;text-transform:none;letter-spacing:0}
+

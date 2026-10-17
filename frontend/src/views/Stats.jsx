@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { EXIDX, matchExercise, betterWeight, isAssisted } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf, entriesForExercise, metricEntriesForExercise, metricModeForEntry, bestWeightForEntry, completedRepsOf, workoutDay, workoutAt } from '../lib/history.js'
 import { fmtNum, fmtDate, fmtVol, todayISO, isoOf, weekKey, weekStartOf, exerciseNameText } from '../lib/format.js'
 import { speedUnitOf, speedLabel, toSpeed } from '../lib/speed.js'
 import { t, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
-import { bwSheet, goalSheet, calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
+import { bwSheet, goalSheet, calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, exerciseDetailSheet, WorkoutRow, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
+import Sparkline from '../components/Sparkline.jsx'
+import { liftSummaries } from '../lib/lift-summary.js'
+import { goBack } from '../lib/nav.js'
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
@@ -24,7 +27,7 @@ import {
   effortHistogram, isHardSet, HARD_RIR, MIN_RATED
 } from '../lib/effort.js'
 import { anchorsByWorkout, resolveSetRir } from '../lib/recovery.js'
-import { Button, Segmented, SelectRow } from '../components/ui.jsx'
+import { Button, Segmented, SelectRow, ListItem, Tile } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { isWarmupRow } from '../lib/workout-model.js'
 
@@ -397,30 +400,14 @@ export function WeeklyPlanVolume({ S }) {
   </div>
 }
 
-export default function Stats() {
-  const nav = useNavigate()
-  const S = useStore(s => s.S)
-  const [range, setRange] = useState(90)
-  // Plan's "Weekly muscle volume" row lands here (/stats?focus=weekly-volume). The router is a
-  // HashRouter, so the query sits in the hash; the scroll waits a frame for the page's own
-  // scroll-to-top on navigation to have happened first.
-  useEffect(() => {
-    if (!/[?&]focus=weekly-volume\b/.test(window.location.hash || '')) return
-    const frame = window.requestAnimationFrame(() => document.getElementById('weekly-volume')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }))
-    return () => window.cancelAnimationFrame(frame)
-  }, [])
-  const [exId, setExId] = useState(null)
+// One exercise's progress: the chart, its metric switch and the last sessions. On Progress it came
+// with a picker; on the Exercise page (`fixed`) the page is the exercise, so the picker goes.
+export function ExerciseProgress({ S, exId, setExId = () => {}, fixed = false }) {
   const [exMetric, setExMetric] = useState('top')
-  const now = Date.now()
   const kind = displayScale(S)
   const hd = scaleName(kind)
 
-  const bwPts = S.bodyweight.filter(b => range === 0 || (b.t || new Date(b.d).getTime()) > now - range * 86400000)
-    .map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
-  const bw30 = S.bodyweight.filter(b => (b.t || new Date(b.d).getTime()) > now - 30 * 86400000)
-  const bwDelta30 = bw30.length > 1 ? bw30[bw30.length - 1].w - bw30[0].w : null
   const workouts = S.workouts
-  const monthW = workouts.filter(w => workoutDay(w)?.slice(0, 7) === todayISO().slice(0, 7)).length
 
   // Dumbbell weights are read in each exercise's current meaning (lib/dumbbells.js), so the
   // chart and its best compare like with like across a switch between per bell and total.
@@ -610,122 +597,228 @@ export default function Stats() {
   if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
   if (showMax) exOpts.push({ value: 'max', label: t('Max reps') })
 
+
+  return <div className="card ex-progress">
+      {!fixed && <h2>{t('Exercise progress')}</h2>}
+      {exHist.length ? <>
+        {!fixed && <div className="sect-b" style={{ marginBottom: 10 }}>
+          <SelectRow title={t('Exercise')} sheetTitle={t('Exercise progress')} value={curEx} onChange={setExId} stackedValue
+            options={exHist.map(id => ({ value: id, label: (EXIDX[id] ? exerciseNameText(EXIDX[id]) : nameOf(id)) + (exCurrent[id].mx ? ' · ' + fmtNum(exCurrent[id].mx) + ' ' + exCurrent[id].unit : '') }))}
+            search={{
+              placeholder: t('Search…'),
+              label: t('Search…'),
+              emptyLabel: t('No match'),
+              match: (option, query) => matchExercise(matcherOf(option.value), query),
+            }} />
+        </div>}
+        {exOpts.length > 1 && <Segmented className="seg-range" value={onMax ? 'max' : onEff ? 'effort' : onE1 ? 'e1rm' : onSets ? 'sets' : 'top'} onChange={setExMetric} options={exOpts} />}
+        <div className="chart">
+          {onSets
+            ? <LineChart points={perSet.anchors} series={perSet.series} h={150} unit={perSet.metric === 'reps' ? t('reps') : S.unit} />
+            : onMax
+            ? <LineChart points={maxPts} h={150} unit={t('reps')} color="var(--blue)" />
+            : onEff
+            ? <LineChart points={effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
+            : <LineChart points={onE1 ? e1ChartPts : topPts} h={150} unit={exUnit} color="var(--blue)" />}
+        </div>
+        {onSets && <div className="row small" style={{ gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+          {perSet.ns.map(n => <span key={n} className="row" style={{ gap: 5, alignItems: 'center' }}>
+            <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 4, background: SET_COLORS[n - 1] }} />{t('Set {0}', n)}
+          </span>)}
+        </div>}
+        <div style={{ marginTop: 8 }}>{exList.map((p, i) => <div key={i} className="row between small" style={{ padding: '6px 0', borderBottom: 'var(--hair) solid var(--sep)' }}>
+          <span className="muted">{fmtDate(p.d, true)}</span><span>{p.sets.map(s => setLabel(curEx, s, p.target, speedUnit)).join('  ')}</span></div>)}</div>
+        <div className="small dim" style={{ marginTop: 8 }}>
+          {onSets ? (perSet.metric === 'reps' ? t('Reps in each working set, one line per set number') : t('Estimated 1RM of each working set, one line per set number')) : onMax ? <>{t('Most reps in a Max set per workout')} · {t('Best:')}{' '}<b className="accent">{maxBest} {t('reps')}</b></> : onEff ? t('Average effort per workout') : onE1 ? t('Estimated 1RM per workout') : curCardio ? t('Top speed per workout') : curTimed ? t('Longest hold per workout') : repsOnly ? t('Most reps in a set per workout') : t('Best set weight per workout')}
+          {onEff || onMax || onSets ? '' : <> · {t('Best:')}{' '}<b className="accent">{fmtNum(onE1 ? e1Best.est : exBest)} {onE1 ? S.unit : exUnit}</b></>}
+        </div>
+        {onSets && (perSet.drop || perSet.hidden > 0) && <div className="small dim" style={{ marginTop: 4 }}>
+          {perSet.drop && t('Where you most often drop off: set {0} ({1} of {2} workouts)', perSet.drop.n, perSet.drop.count, perSet.drop.of)}
+          {perSet.drop && perSet.hidden > 0 ? ' · ' : ''}
+          {perSet.hidden > 0 && t('Only the first {0} sets are drawn.', perSet.ns.length)}
+        </div>}
+        {onE1 && <div className="small dim" style={{ marginTop: 4 }}>
+          {t('Best estimate from {0} on {1}. An estimate, not a tested max.', fmtNum(e1Best.w) + ' ' + S.unit + ' × ' + e1Best.r, fmtDate(e1Best.d, true))}
+        </div>}
+        {!onEff && !onE1 && !onMax && !onSets && showEff && <div className="small dim" style={{ marginTop: 4 }}>
+          {t('A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.', hd)}
+        </div>}
+      </> : <div className="muted small">{t('Finish your first workout and your progress curves will show up here.')}</div>}
+    </div>
+}
+
+// Progress (design audit, proposals 6, 7 and 11): the Stats tab, lift-first. Three views — Lifts
+// (how each exercise is going, then the sessions), Body (weight, measurements, photos together)
+// and Balance (activity, muscles, effort). The view you last looked at comes back: a per-device
+// convenience, like Plan's, so browser storage and not S.
+export const PROGRESS_VIEW_KEY = 'gym_progress_view'
+const PROGRESS_VIEWS = ['lifts', 'body', 'balance']
+const readProgressView = () => {
+  // Plan's "Weekly muscle volume" row lands on Balance (/stats?focus=weekly-volume).
+  if (/[?&]focus=weekly-volume\b/.test(globalThis.location?.hash || '')) return 'balance'
+  try { const v = localStorage.getItem(PROGRESS_VIEW_KEY); return PROGRESS_VIEWS.includes(v) ? v : 'lifts' } catch { return 'lifts' }
+}
+
+// More rows than this and the list gets a search field.
+const LIFT_SEARCH_FROM = 8
+
+function liftUnit(S, row, speedUnit) {
+  if (row.mode === 'cardio') return speedLabel(speedUnit)
+  if (row.mode === 'time') return 's'
+  return row.repsOnly ? t('reps') : S.unit
+}
+
+// An exercise this build does not know keeps the name its workout saved with it (a custom one, or
+// an id from a newer catalogue); one with no name at all is left off the list, not shown as an id.
+function liftName(S, id) {
+  if (EXIDX[id]) return exerciseNameFor(EXIDX[id])
+  for (let i = S.workouts.length - 1; i >= 0; i--) {
+    const e = (S.workouts[i].entries || []).find(x => x?.id === id)
+    const n = e?.muscleSnapshot?.n || e?.n
+    if (n) return n
+  }
+  return null
+}
+
+function LiftRow({ S, row, name, speedUnit, onOpen }) {
+  const ex = EXIDX[row.id]
+  const unit = liftUnit(S, row, speedUnit)
+  const trend = row.trend > 0 ? { icon: 'arrowUp', cls: 'up', say: t('Going up') }
+    : row.trend < 0 ? { icon: 'arrowDown', cls: 'down', say: t('Going down') } : null
+  return <div className="item lift-row" {...tappable(onOpen)}>
+    <div className="grow" style={{ minWidth: 0 }}>
+      <div className={'tt ellipsis ' + (ex ? exerciseNameClass(ex) : '')}>{name}</div>
+      <div className="ss">{fmtNum(row.last)} {unit}{row.best !== row.last ? ' · ' + t('best {0}', fmtNum(row.best) + ' ' + unit) : ' · ' + t('best yet')} · {fmtDate(row.lastD, true)}</div>
+    </div>
+    <Sparkline points={row.curve} invert={row.mode === 'reps' && !row.repsOnly && isAssisted(row.id)} />
+    <span className={'lift-trend ' + (trend?.cls || 'flat')} role="img" aria-label={trend?.say || t('Holding steady')}>
+      <Icon name={trend?.icon || 'minus'} />
+    </span>
+  </div>
+}
+
+export default function Stats() {
+  const nav = useNavigate()
+  const S = useStore(s => s.S)
+  const [range, setRange] = useState(90)
+  const [view, setViewState] = useState(readProgressView)
+  const setView = v => {
+    setViewState(v)
+    try { localStorage.setItem(PROGRESS_VIEW_KEY, v) } catch { /* private mode: not remembered */ }
+  }
+  const [q, setQ] = useState('')
+  // The scroll to the weekly volume waits a frame for the page's own scroll-to-top on navigation.
+  useEffect(() => {
+    if (!/[?&]focus=weekly-volume\b/.test(window.location.hash || '')) return
+    const frame = window.requestAnimationFrame(() => document.getElementById('weekly-volume')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+  const now = Date.now()
+  const bwPts = S.bodyweight.filter(b => range === 0 || (b.t || new Date(b.d).getTime()) > now - range * 86400000)
+    .map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
+  const bw30 = S.bodyweight.filter(b => (b.t || new Date(b.d).getTime()) > now - 30 * 86400000)
+  const bwDelta30 = bw30.length > 1 ? bw30[bw30.length - 1].w - bw30[0].w : null
+  const workouts = S.workouts
+  const monthW = workouts.filter(w => workoutDay(w)?.slice(0, 7) === todayISO().slice(0, 7)).length
+  const speedUnit = speedUnitOf(S)
+  const lifts = useMemo(() => liftSummaries(S, { speedUnit }).map(r => ({ ...r, name: liftName(S, r.id) })).filter(r => r.name),
+    [S.workouts, S.dbLoad, speedUnit])
+  const shownLifts = q.trim() ? lifts.filter(r => EXIDX[r.id] ? matchExercise(EXIDX[r.id], q) : r.name.toLowerCase().includes(q.trim().toLowerCase())) : lifts
+  const measures = S.measurements || []
+
   return <>
-    <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
+    <div className="hdr"><div><h1>{t('Progress')}</h1><div className="sub">{t('Lifts, body and balance')}</div></div>
       <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div>
+    <Segmented className="progress-views" value={view} onChange={setView}
+      options={[{ value: 'lifts', label: t('Lifts') }, { value: 'body', label: t('Body') }, { value: 'balance', label: t('Balance') }]} />
 
-    <div className="tiles">
-      <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{workouts.length}</div></div>
-      <div className="tile"><div className="l"><Icon name="calendar" />{t('This month')}</div><div className="v">{monthW}</div></div>
-      <div className="tile"><div className="l"><Icon name="flame" />{t('Week streak')}</div><div className="v">{streakWeeks(S)}</div></div>
-      <div className="tile"><div className="l"><Icon name="scale" />{t('Weight 30d')}</div><div className="v" style={{ fontSize: 22, color: bwDelta30 === null ? 'inherit' : bwDeltaColor(bwDelta30, (lastBW(S) || {}).w || 0) }}>{bwDelta30 === null ? '–' : (bwDelta30 > 0 ? '+' : '') + fmtNum(bwDelta30) + ' ' + S.unit}</div></div>
+    {view === 'lifts' && <>
+      <div className="tiles three">
+        <Tile icon="dumbbell" label={t('Workouts')} value={workouts.length} />
+        <Tile icon="calendar" label={t('This month')} value={monthW} />
+        <Tile icon="flame" label={t('Week streak')} value={streakWeeks(S)} />
+      </div>
+      <div className="row between" style={{ margin: 'var(--sp-2) 0' }}>
+        <h4 className="sec" style={{ margin: 0 }}>{t('Your lifts')}</h4>
+      </div>
+      {lifts.length > LIFT_SEARCH_FROM && <div className="search" style={{ marginBottom: 'var(--sp-2)' }}>
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+        <input className="input" placeholder={t('Search…')} aria-label={t('Search your lifts')} inputMode="search" value={q} onChange={e => setQ(e.target.value)} />
+      </div>}
+      {lifts.length ? <div className="list">
+        {shownLifts.map(row => <LiftRow key={row.id} S={S} row={row} name={row.name} speedUnit={speedUnit} onOpen={() => nav('/stats/ex/' + encodeURIComponent(row.id))} />)}
+        {!shownLifts.length && <div className="empty small">{t('No match')}</div>}
+      </div> : <div className="card muted small">{t('Finish your first workout and your progress curves will show up here.')}</div>}
+      {workouts.length > 0 && <>
+        <div className="row between" style={{ margin: 'var(--sp-5) 0 10px' }}>
+          <h4 className="sec" style={{ margin: 0 }}>{t('Recent workouts')}</h4>
+          <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={() => nav('/history')}>{t('All')} {workouts.length}</Button>
+        </div>
+        <div className="list">{[...workouts].reverse().slice(0, 4).map(w => <WorkoutRow key={w.id} w={w} onClick={() => workoutDetailSheet(w)} />)}</div>
+      </>}
+    </>}
 
-    </div>
-
-    <div className="card">
-      <h2>{t('Activity (last 12 months)')}</h2>
-      <Heatmap
-        S={S}
-        metric={S.heatmapMetric === 'vol' ? 'vol' : 'time'}
-        onMetricChange={metric => useStore.getState().update(s => { s.heatmapMetric = metric })}
-        onDay={iso => { const ws = workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }}
-      />
-    </div>
-
-    {(workouts.length > 0 || Object.keys(loadOfWeeklyPlan(S)).length > 0) && <MuscleBalance S={S} />}
-    {S.routines.length > 0 && <WeeklyPlanVolume S={S} />}
-    {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
-      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Structural balance')}</h2>
-        <div className="muted small" style={{ marginTop: 4 }}>{t('See which lift is holding back the rest.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/structural-balance')}>{t('Open')}</Button>
-    </div>}
-    {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
-      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Progress photos')}</h2>
-        <div className="muted small" style={{ marginTop: 4 }}>{t('Every photo you kept with a workout, lined up by date. Plus a before/after slider.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/progress-photos')}>{t('Open')}</Button>
-    </div>}
-    <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
-      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Body measurements')}</h2>
-        <div className="muted small" style={{ marginTop: 4 }}>{(S.measurements || []).length
-          ? t('Last check-in {0}', fmtDate(S.measurements[S.measurements.length - 1].d, true))
-          : t('Waist, arms, body fat and anything else you measure, each with its own curve.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/measurements')}>{t('Open')}</Button>
-    </div>
-    {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} />}
-
-    <div className="cols">
+    {view === 'body' && <>
       <div className="card">
         <div className="row between bw-head" style={{ marginBottom: 8 }}>
           <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
           <div className="row" style={{ gap: 8 }}>
-            <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--yellow)' } : undefined} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
+            <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--goal)' } : undefined} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
             <Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>
           </div>
         </div>
+        {bwDelta30 !== null && <div className="small" style={{ marginBottom: 6, color: bwDeltaColor(bwDelta30, (lastBW(S) || {}).w || 0) }}>
+          {t('{0} in 30 days', (bwDelta30 > 0 ? '+' : '') + fmtNum(bwDelta30) + ' ' + S.unit)}
+        </div>}
         <Segmented className="seg-range" value={range} onChange={setRange}
           options={[{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
         <div className="chart"><LineChart points={bwPts} h={160} unit={S.unit} goal={S.targetW} /></div>
-        {/* every weigh-in, week by week with its average (Discord 'Weight') */}
         {S.bodyweight.length > 0 && <div className="row" style={{ justifyContent: 'flex-end', marginTop: 4 }}>
           <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={weighInsSheet}>{t('All weigh-ins')}</Button>
         </div>}
       </div>
+      <div className="list">
+        <ListItem icon="ruler" tint="var(--teal)" title={t('Body measurements')} chevron onClick={() => nav('/measurements')}
+          sub={measures.length ? t('Last check-in {0}', fmtDate(measures[measures.length - 1].d, true)) : t('Waist, arms, body fat and anything else you measure, each with its own curve.')} />
+        <ListItem icon="image" tint="var(--purple)" title={t('Progress photos')} chevron onClick={() => nav('/progress-photos')}
+          sub={t('Every photo you kept with a workout, lined up by date. Plus a before/after slider.')} />
+      </div>
+    </>}
 
+    {view === 'balance' && <>
       <div className="card">
-        <h2>{t('Exercise progress')}</h2>
-        {exHist.length ? <>
-          <div className="sect-b" style={{ marginBottom: 10 }}>
-            <SelectRow title={t('Exercise')} sheetTitle={t('Exercise progress')} value={curEx} onChange={setExId} stackedValue
-              options={exHist.map(id => ({ value: id, label: (EXIDX[id] ? exerciseNameText(EXIDX[id]) : nameOf(id)) + (exCurrent[id].mx ? ' · ' + fmtNum(exCurrent[id].mx) + ' ' + exCurrent[id].unit : '') }))}
-              search={{
-                placeholder: t('Search…'),
-                label: t('Search…'),
-                emptyLabel: t('No match'),
-                match: (option, query) => matchExercise(matcherOf(option.value), query),
-              }} />
-          </div>
-          {exOpts.length > 1 && <Segmented className="seg-range" value={onMax ? 'max' : onEff ? 'effort' : onE1 ? 'e1rm' : onSets ? 'sets' : 'top'} onChange={setExMetric} options={exOpts} />}
-          <div className="chart">
-            {onSets
-              ? <LineChart points={perSet.anchors} series={perSet.series} h={150} unit={perSet.metric === 'reps' ? t('reps') : S.unit} />
-              : onMax
-              ? <LineChart points={maxPts} h={150} unit={t('reps')} color="var(--blue)" />
-              : onEff
-              ? <LineChart points={effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
-              : <LineChart points={onE1 ? e1ChartPts : topPts} h={150} unit={exUnit} color="var(--blue)" />}
-          </div>
-          {onSets && <div className="row small" style={{ gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
-            {perSet.ns.map(n => <span key={n} className="row" style={{ gap: 5, alignItems: 'center' }}>
-              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 4, background: SET_COLORS[n - 1] }} />{t('Set {0}', n)}
-            </span>)}
-          </div>}
-          <div style={{ marginTop: 8 }}>{exList.map((p, i) => <div key={i} className="row between small" style={{ padding: '6px 0', borderBottom: 'var(--hair) solid var(--sep)' }}>
-            <span className="muted">{fmtDate(p.d, true)}</span><span>{p.sets.map(s => setLabel(curEx, s, p.target, speedUnit)).join('  ')}</span></div>)}</div>
-          <div className="small dim" style={{ marginTop: 8 }}>
-            {onSets ? (perSet.metric === 'reps' ? t('Reps in each working set, one line per set number') : t('Estimated 1RM of each working set, one line per set number')) : onMax ? <>{t('Most reps in a Max set per workout')} · {t('Best:')}{' '}<b className="accent">{maxBest} {t('reps')}</b></> : onEff ? t('Average effort per workout') : onE1 ? t('Estimated 1RM per workout') : curCardio ? t('Top speed per workout') : curTimed ? t('Longest hold per workout') : repsOnly ? t('Most reps in a set per workout') : t('Best set weight per workout')}
-            {onEff || onMax || onSets ? '' : <> · {t('Best:')}{' '}<b className="accent">{fmtNum(onE1 ? e1Best.est : exBest)} {onE1 ? S.unit : exUnit}</b></>}
-          </div>
-          {onSets && (perSet.drop || perSet.hidden > 0) && <div className="small dim" style={{ marginTop: 4 }}>
-            {perSet.drop && t('Where you most often drop off: set {0} ({1} of {2} workouts)', perSet.drop.n, perSet.drop.count, perSet.drop.of)}
-            {perSet.drop && perSet.hidden > 0 ? ' · ' : ''}
-            {perSet.hidden > 0 && t('Only the first {0} sets are drawn.', perSet.ns.length)}
-          </div>}
-          {onE1 && <div className="small dim" style={{ marginTop: 4 }}>
-            {t('Best estimate from {0} on {1}. An estimate, not a tested max.', fmtNum(e1Best.w) + ' ' + S.unit + ' × ' + e1Best.r, fmtDate(e1Best.d, true))}
-          </div>}
-          {!onEff && !onE1 && !onMax && !onSets && showEff && <div className="small dim" style={{ marginTop: 4 }}>
-            {t('A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.', hd)}
-          </div>}
-        </> : <div className="muted small">{t('Finish your first workout and your progress curves will show up here.')}</div>}
+        <h2>{t('Activity (last 12 months)')}</h2>
+        <Heatmap
+          S={S}
+          metric={S.heatmapMetric === 'vol' ? 'vol' : 'time'}
+          onMetricChange={metric => useStore.getState().update(s => { s.heatmapMetric = metric })}
+          onDay={iso => { const ws = workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }}
+        />
       </div>
-    </div>
-
-    {workouts.length > 0 && <>
-      <div className="row between" style={{ marginBottom: 10 }}>
-        <h4 className="sec" style={{ margin: 0 }}>{t('Recent workouts')}</h4>
-        <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={() => nav('/history')}>{t('All')} {workouts.length}</Button>
-      </div>
-      <div className="list">{[...workouts].reverse().slice(0, 6).map(w => <WorkoutRow key={w.id} w={w} onClick={() => workoutDetailSheet(w)} />)}</div>
+      {(workouts.length > 0 || Object.keys(loadOfWeeklyPlan(S)).length > 0) && <MuscleBalance S={S} />}
+      {S.routines.length > 0 && <WeeklyPlanVolume S={S} />}
+      {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} />}
+      {workouts.length > 0 && <div className="list">
+        <ListItem icon="figureStrength" tint="var(--indigo)" title={t('Structural balance')} sub={t('See which lift is holding back the rest.')}
+          chevron onClick={() => nav('/structural-balance')} />
+      </div>}
     </>}
   </>
+}
+
+// One exercise, a page of its own (design audit, proposal 6): what a row of "Your lifts" opens.
+export function ExercisePage() {
+  const { id: raw } = useParams()
+  const id = decodeURIComponent(raw || '')
+  const S = useStore(s => s.S)
+  const ex = EXIDX[id]
+  return <div className="narrow">
+    <div className="hdr"><button className="iconbtn" onClick={() => goBack('/stats')} aria-label={t('Progress')}><Icon name="chevronLeft" /></button>
+      <div style={{ flex: 1, marginInlineStart: 12, minWidth: 0 }}><h1 className={'ellipsis ' + (ex ? exerciseNameClass(ex) : '')}>{ex ? exerciseNameFor(ex) : id}</h1></div></div>
+    <div className="row" style={{ gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
+      {ex && <Button size="sm" variant="tinted" icon="info" onClick={() => exerciseDetailSheet(ex)}>{t('How to')}</Button>}
+      <Button size="sm" variant="tinted" icon="history" onClick={() => exerciseHistorySheet(id)}>{t('Every session')}</Button>
+    </div>
+    <ExerciseProgress S={S} exId={id} fixed />
+  </div>
 }

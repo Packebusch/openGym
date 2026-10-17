@@ -7,7 +7,7 @@ import { EXIDX } from '../lib/exercises.js'
 import { MUSCLES, levelsOf } from '../lib/muscles.js'
 import { FATIGUE_STATES, STRENGTH_FLOOR, fatigueHalfLifeOf, FATIGUE_SETS_PER_UNIT } from '../lib/recovery.js'
 import { fatigueStateOf } from '../lib/recovery-view.js'
-import Stats from './Stats.jsx'
+import Stats, { ExerciseProgress } from './Stats.jsx'
 import Modals from '../components/Modals.jsx'
 import { bindUI } from '../components/ui.jsx'
 import { useUI } from '../store/useUI.js'
@@ -173,6 +173,17 @@ async function mountStats() {
   await act(async () => { root.render(React.createElement(React.Fragment, null, React.createElement(Stats), React.createElement(Modals))) })
 }
 
+// The exercise chart with its picker, as it stands on its own (design audit, proposal 6: Progress
+// lists the lifts and an exercise's page holds the chart; the picker is the component's own).
+function PickedExercise() {
+  const [exId, setExId] = React.useState(null)
+  return React.createElement(ExerciseProgress, { S: mocks.S, exId, setExId })
+}
+async function mountExerciseProgress() {
+  installDom()
+  await act(async () => { root.render(React.createElement(React.Fragment, null, React.createElement(PickedExercise), React.createElement(Modals))) })
+}
+
 async function unmountStats() {
   if (!root) return
   await act(async () => { root.unmount() })
@@ -213,6 +224,8 @@ const lastMap = () => mocks.maps.at(-1)
 const expectPressed = button => expect(button?.getAttribute('aria-pressed')).toBe('true')
 
 beforeEach(() => {
+  // Muscle balance, weekly volume and effort sit on Progress → Balance (design audit, proposal 6).
+  localStorage.setItem('gym_progress_view', 'balance')
   vi.useFakeTimers()
   vi.setSystemTime(BASE_NOW)
   resetFixture()
@@ -419,7 +432,7 @@ describe('Stats exercise progress picker', () => {
     resetFixture([workout('legacy-topw', BASE_NOW, [
       { id: '0025', target: { mode: 'reps' }, topW: 70, sets: [] },
     ])])
-    await mountStats()
+    await mountExerciseProgress()
 
     const card = [...container.querySelectorAll('.card')].find(el => el.querySelector('h2')?.textContent.trim() === 'Exercise progress')
     expect(card.textContent).toContain('70 kg')
@@ -433,7 +446,7 @@ describe('Stats exercise progress picker', () => {
       { id: '0025', target: { mode: 'reps' }, topW: 70, sets: [] },
       { id: '0025', target: { mode: 'reps' }, topW: 60, sets: [] },
     ])])
-    await mountStats()
+    await mountExerciseProgress()
 
     const card = [...container.querySelectorAll('.card')].find(el => el.querySelector('h2')?.textContent.trim() === 'Exercise progress')
     expect(card.textContent).toContain('70 kg')
@@ -447,7 +460,7 @@ describe('Stats exercise progress picker', () => {
       entry('0025', [set(true, { w: 50, r: 5 })]),
       { id: '0025', target: { mode: 'reps' }, topW: 70, sets: [] },
     ])])
-    await mountStats()
+    await mountExerciseProgress()
 
     const card = [...container.querySelectorAll('.card')].find(el => el.querySelector('h2')?.textContent.trim() === 'Exercise progress')
     expect(card.textContent).toContain('70 kg')
@@ -461,7 +474,7 @@ describe('Stats exercise progress picker', () => {
       entry('0025', [set(true, { w: 60, r: 5 })]),
       entry('0025', [set(true, { w: 80, r: 5 })]),
     ])])
-    await mountStats()
+    await mountExerciseProgress()
 
     const card = [...container.querySelectorAll('.card')].find(el => el.querySelector('h2')?.textContent.trim() === 'Exercise progress')
     expect(card.textContent).toContain('80 kg')
@@ -476,7 +489,7 @@ describe('Stats exercise progress picker', () => {
       entry('0017', [set(true, { w: 30, r: 8 })]),
       entry('0017', [set(true, { w: 20, r: 8 })]),
     ])])
-    await mountStats()
+    await mountExerciseProgress()
 
     const card = [...container.querySelectorAll('.card')].find(el => el.querySelector('h2')?.textContent.trim() === 'Exercise progress')
     expect(card.textContent).toContain('20 kg')
@@ -487,7 +500,7 @@ describe('Stats exercise progress picker', () => {
 
   it('filters with the shared exercise matcher and still selects from the mounted sheet', async () => {
     resetFixture(exercisePickerWorkouts())
-    await mountStats()
+    await mountExerciseProgress()
     expect(EXIDX[LEGACY_SNAPSHOT_ID]).toBeUndefined()
 
     const card = [...container.querySelectorAll('.card')].find(el => el.querySelector('h2')?.textContent.trim() === 'Exercise progress')

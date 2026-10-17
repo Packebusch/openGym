@@ -72,8 +72,10 @@ export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChan
       // trained day so the note can be read (and changed) on a phone too.
       const note = !a && dayNoteOf(S, key)
       const cls = 'hm-c l' + level(a) + (note ? ' noted' : '') + (key === todayISO() ? ' today' : '') + (day > today ? ' future' : '')
-      cells.push(<div key={d} className={cls}
-        title={key + (a ? ` · ${tn('{0} workout', '{0} workouts', a.n)} · ${t('{0} min', a.min)} · ${fmtVol(a.vol, S.unit)}` : note ? ` · ${dayNoteLine(note, t)}` : '')}
+      // `title` alone reaches neither a touch screen nor most screen readers: a tappable day
+      // carries the same text as its name.
+      const tip = key + (a ? ` · ${tn('{0} workout', '{0} workouts', a.n)} · ${t('{0} min', a.min)} · ${fmtVol(a.vol, S.unit)}` : note ? ` · ${dayNoteLine(note, t)}` : '')
+      cells.push(<div key={d} className={cls} title={tip} aria-label={a || note ? tip : undefined}
         {...tappable(a || note ? () => onDay?.(key) : undefined)} />)
     }
     cols.push(<div key={wk} className="hm-col">{cells}</div>)

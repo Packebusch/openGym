@@ -71,7 +71,10 @@ export default function Home() {
     const eff = effectiveRoutineIds(S, iso).length > 0, ovr = S.dayPlan[iso] !== undefined, done = !!byDay[iso]
     // A day off with a note (#261) reads as excused, not as a plan that went by.
     const dot = done ? ' done' : dayNoteOf(S, iso) ? ' noted' : ovr && eff ? ' ovr' : eff ? ' plan' : ''
-    strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} {...tappable(() => openDaySheet(iso, byDay[iso]))}>
+    // The dot's colour says it to the eye; the name says it to a screen reader.
+    const said = { ' done': 'Trained', ' noted': 'Day note', ' ovr': 'Rescheduled', ' plan': 'Planned' }[dot]
+    const name = [iso === todayISO() && t('Today'), t(DAYS[d.getDay()]) + ' ' + d.getDate(), said && t(said)].filter(Boolean).join(', ')
+    strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} aria-label={name} {...tappable(() => openDaySheet(iso, byDay[iso]))}>
       <div className="lbl">{t(DAYS[d.getDay()])}</div><div className="num">{d.getDate()}</div><div className={'dot' + dot} /></div>)
   }
   const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6)

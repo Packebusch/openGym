@@ -94,7 +94,32 @@ export default function CoachChat() {
     })
   }, [job, pending, loading, last?.id])
 
-  useEffect(() => { if (typeof endRef.current?.scrollIntoView === 'function') endRef.current.scrollIntoView({ block: 'end' }) }, [S.coach?.chat?.length, !!job, !!pending])
+  // Follow new messages down only while you are at the bottom already: scrolled up to reread an
+  // earlier answer, a reply landing must not yank the page away from it. The first render
+  // always lands at the bottom.
+  const following = useRef(true)
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement
+      following.current = window.innerHeight + window.scrollY >= doc.scrollHeight - 160
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  useEffect(() => {
+    if (following.current && typeof endRef.current?.scrollIntoView === 'function') endRef.current.scrollIntoView({ block: 'end' })
+  }, [S.coach?.chat?.length, !!job, !!pending])
+  // The composer grows with what is typed, up to the CSS max-height, and shrinks back on send.
+  const textRef = useRef(null)
+  useEffect(() => {
+    const el = textRef.current
+    if (!el?.style) return
+    el.style.height = 'auto'
+    if (el.scrollHeight) el.style.height = el.scrollHeight + 'px'
+  }, [text])
+  // On a phone's keyboard Return is a new line and the arrow button sends; with a hardware
+  // keyboard Enter sends and Shift+Enter breaks the line.
+  const touch = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches
 
   if (!ready) return null
   const coach = S.coach || emptyCoach()
@@ -196,7 +221,7 @@ export default function CoachChat() {
       <button className="iconbtn" onClick={menu} aria-label={t('More')}><Icon name="more" /></button>
     </div>
 
-    <div className="msgs">
+    <div className="msgs" aria-live="polite">
       <Bubble role="coach">{t('Hi, I’m your Coach. I build your plan from your answers and adjust it from what you actually log. Nothing changes until you say so.')}</Bubble>
 
       {(coach.chat || []).map(m => <Message key={m.id} m={m} S={S} profile={coach.profile} openSheet={openSheet} />)}
@@ -220,9 +245,10 @@ export default function CoachChat() {
         {community && <button className="qchip" onClick={showCohort}><Icon name="person" />{t('Compare')}</button>}
       </div>}
       <div className="composer-in">
-        <textarea rows={1} value={text} maxLength={maxMessageLen || 1000} placeholder={placeholder} disabled={!!job}
+        <textarea ref={textRef} rows={1} value={text} maxLength={maxMessageLen || 1000} placeholder={placeholder} disabled={!!job}
+          aria-label={t('Message the Coach…')} enterKeyHint={touch ? 'enter' : 'send'}
           onChange={e => setText(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !touch) { e.preventDefault(); send() } }} />
         <button className="send" onClick={send} disabled={!text.trim() || busy || !!job} aria-label={t('Send')}><Icon name="arrowUp" /></button>
       </div>
       {cap?.limit > 0 && <div className="composer-cap">{t('{0} of {1} Coach runs used today', cap.used, cap.limit)}</div>}

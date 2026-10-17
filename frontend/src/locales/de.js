@@ -2254,4 +2254,8 @@ export default {
   'Undo set': 'Satz rückgängig',
   '15 seconds less': '15 Sekunden weniger',
   '15 seconds more': '15 Sekunden mehr',
+  'Search exercises': 'Übungen suchen',
+  'Chart, {0} entries, latest {1}': 'Diagramm, {0} Einträge, zuletzt {1}',
+  'Routine name': 'Name der Routine',
+  'Hours': 'Stunden',
 }

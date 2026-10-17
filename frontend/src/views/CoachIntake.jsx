@@ -132,7 +132,7 @@ export default function CoachIntake() {
   return <div className="narrow ob">
     <div className="ob-top">
       <button className="iconbtn" onClick={back} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
-      {key !== 'consent' && <div className="ob-dots">
+      {key !== 'consent' && <div className="ob-dots" role="img" aria-label={t('Step {0} of {1}', dotIndex + 1, dots.length)}>
         {dots.map((s, i) => <span key={s} className={'ob-dot' + (i === dotIndex ? ' on' : i < dotIndex ? ' done' : '')} />)}
       </div>}
       {optional && !last ? <button className="ob-skip" onClick={next}>{t('Skip')}</button> : <span style={{ width: 36 }} />}
@@ -164,11 +164,11 @@ export default function CoachIntake() {
         <h1 className="ob-h">{t('How many days a week?')}</h1>
         <p className="ob-p">{t('Pick what you will actually keep, not the best week you can imagine.')}</p>
         <div className="ob-days">
-          {[1, 2, 3, 4, 5, 6, 7].map(n => <button key={n} className={'ob-day' + (p.daysPerWeek === n ? ' on' : '')} onClick={() => set({ daysPerWeek: n })}>{n}</button>)}
+          {[1, 2, 3, 4, 5, 6, 7].map(n => <button key={n} className={'ob-day' + (p.daysPerWeek === n ? ' on' : '')} aria-pressed={p.daysPerWeek === n} onClick={() => set({ daysPerWeek: n })}>{n}</button>)}
         </div>
         <div className="ob-sub">{t('Which days suit you? (optional)')}</div>
         <div className="ob-week">
-          {[1, 2, 3, 4, 5, 6, 0].map(d => <button key={d} className={'ob-wd' + (p.preferredDays.includes(d) ? ' on' : '')} onClick={() => toggleDay(d)}>{t(DAYN[d]).slice(0, 2)}</button>)}
+          {[1, 2, 3, 4, 5, 6, 0].map(d => <button key={d} className={'ob-wd' + (p.preferredDays.includes(d) ? ' on' : '')} aria-pressed={p.preferredDays.includes(d)} aria-label={t(DAYN[d])} onClick={() => toggleDay(d)}>{t(DAYN[d]).slice(0, 2)}</button>)}
         </div>
       </>}
 
@@ -179,19 +179,19 @@ export default function CoachIntake() {
         {/* A duration, not a clock time — so two wheels (hours, minutes in fives), never the
             native time input, which insists on AM/PM. */}
         <div className="ob-time" role="group" aria-label={t('How long is a session?')}>
-          <select className="ob-wheel" value={Math.floor((p.sessionMin || 60) / 60)}
+          <select className="ob-wheel" aria-label={t('Hours')} value={Math.floor((p.sessionMin || 60) / 60)}
             onChange={e => set({ sessionMin: (+e.target.value) * 60 + ((p.sessionMin || 60) % 60) || 5 })}>
             {[0, 1, 2, 3].map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}</option>)}
           </select>
           <span className="ob-time-sep">:</span>
-          <select className="ob-wheel" value={(p.sessionMin || 60) % 60}
+          <select className="ob-wheel" aria-label={t('Minutes')} value={(p.sessionMin || 60) % 60}
             onChange={e => set({ sessionMin: Math.floor((p.sessionMin || 60) / 60) * 60 + (+e.target.value) || 5 })}>
             {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
           </select>
           <span className="ob-time-l">{t('h:mm')}</span>
         </div>
         <div className="ob-quick">
-          {QUICK_MIN.map(m => <button key={m} className={'chip' + (p.sessionMin === m ? ' on' : '')} onClick={() => set({ sessionMin: m })}>{m} {t('min')}</button>)}
+          {QUICK_MIN.map(m => <button key={m} className={'chip' + (p.sessionMin === m ? ' on' : '')} aria-pressed={p.sessionMin === m} onClick={() => set({ sessionMin: m })}>{m} {t('min')}</button>)}
         </div>
       </>}
 
@@ -200,7 +200,7 @@ export default function CoachIntake() {
         <h1 className="ob-h">{t('What can you train with?')}</h1>
         <p className="ob-p">{t('Pick everything you have access to. Leave it empty and the Coach will use the whole library.')}</p>
         <div className="ob-chips">
-          {EQUIPMENT.map(e => <button key={e} className={'chip' + (p.equipment.includes(e) ? ' on' : '')} onClick={() => toggleEq(e)}>{t(e)}</button>)}
+          {EQUIPMENT.map(e => <button key={e} className={'chip' + (p.equipment.includes(e) ? ' on' : '')} aria-pressed={p.equipment.includes(e)} onClick={() => toggleEq(e)}>{t(e)}</button>)}
         </div>
       </>}
 
@@ -238,7 +238,7 @@ export default function CoachIntake() {
 }
 
 function Choice({ on, icon, title, sub, onClick }) {
-  return <button className={'ob-choice' + (on ? ' on' : '')} onClick={onClick}>
+  return <button className={'ob-choice' + (on ? ' on' : '')} aria-pressed={!!on} onClick={onClick}>
     <Icon name={icon} />
     <span className="ob-choice-t">{title}{sub && <span className="ob-choice-s">{sub}</span>}</span>
     <Icon name="check" className="ob-k" />

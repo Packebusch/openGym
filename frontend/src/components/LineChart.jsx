@@ -126,7 +126,9 @@ export default function LineChart({ points, h = 150, unit = '', color = 'var(--a
       onMouseMove={onMove} onMouseDown={onMove}
       onMouseLeave={() => setHover(null)}
       onTouchStart={onMove} onTouchMove={onMove}>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ aspectRatio: `${W}/${H}` }}>
+      {/* One line for a screen reader in place of the drawing: how many points, and the latest. */}
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ aspectRatio: `${W}/${H}` }}
+        role="img" aria-label={t('Chart, {0} entries, latest {1}', points.length, fmtNum(points[points.length - 1].y) + (unit ? ' ' + unit : ''))}>
         <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={color} stopOpacity=".28" />
           <stop offset="1" stopColor={color} stopOpacity="0" />

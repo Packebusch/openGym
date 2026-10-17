@@ -83,6 +83,7 @@ export default {
   'Starting weight removed': 'Startgewicht entfernt',
   'Remove starting weight': 'Startgewicht entfernen',
   'since start': 'seit Start',
+  'Share & export': 'Teilen & exportieren',
   'Body weight': 'Körpergewicht',
   'reached!': 'erreicht!',
   '{0} to gain': 'noch {0} zunehmen',

@@ -1803,6 +1803,15 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .wd-ss{box-shadow:inset 3px 0 0 var(--acc);padding-inline-start:11px;margin-bottom:12px}
 .wd-ss .ss-label{margin:0 0 8px}
 .wd-ss .wd-ex:last-child{margin-bottom:0}
+/* Workout detail: the stats as one compact row of tiles, the two main actions side by side, and
+   the rest in grouped lists with room between them. */
+.tiles.wd-stats{gap:8px;margin-bottom:4px}
+.wd-stats .tile{padding:10px 12px;min-width:0}
+.wd-stats .tile .l{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wd-stats .tile .v{font-size:17px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+h4.sec.wd-sec{margin-top:18px}
+.wd-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 22px}
+.wd-group+.wd-group{margin-top:22px}
 .ss-card{
   border-radius:var(--r-lg);padding:14px;
   background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--acc-line);

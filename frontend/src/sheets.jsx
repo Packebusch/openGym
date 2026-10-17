@@ -2533,9 +2533,36 @@ function WorkoutDetail({ w, close }) {
   // anywhere) renders flat.
   const groups = sessionSections(w.entries)
   const grouped = groups.length > 1 || (groups[0] && groups[0].rid && (w.routineIds || []).length > 1)
+  const stats = [
+    [t('Duration'), fmtDur(Math.max(0, (w.end || w.start) - w.start))],
+    [t('Volume'), fmtVol(w.vol, st.unit)],
+    [t('Sets'), setsWorkCount(setsDone(w), workSetsDone(w))],
+    ...(w.bw ? [[t('Body weight'), fmtNum(w.bw) + ' ' + st.unit]] : []),
+  ]
+  // Every action that writes the note first: the textarea only saves on blur, and these leave the
+  // sheet (or re-key a legacy record), so flush it and stop the unmount hook writing it twice.
+  const flushNote = () => { saveNote(); initial.current = latest.current.trim().slice(0, NOTE_MAX) }
+  const deleteWorkout = () => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.') + mediaGoesToo(S().workouts.find(x => sameWorkout(x, w))), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => !sameWorkout(x, w)) }); close(); toast(t('Workout deleted')) } })
+  const saveAsRoutine = () => confirmSheet({
+    title: t('Save as routine?'),
+    message: t('Create an independent routine from these exercise targets. Your workout history is kept.'),
+    confirmText: t('Save'),
+    onConfirm: () => {
+      let id
+      try { update(s => { id = saveSessionAsRoutine(s, w, w.name) }) }
+      catch (e) { toast(t(e.message)); return }
+      close()
+      nav('/plan/r/' + id)
+    }
+  })
   return <>
-    <h3>{w.name}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...durPart(w.end - w.start), fmtVol(w.vol, st.unit), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
+    <h3 style={{ marginBottom: 2 }}>{w.name}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{fmtDate(w.d, true)}{w.start ? ' · ' + new Date(w.start).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+    {/* The numbers a past session is looked up for, as tiles, rather than one run-on line under the title. */}
+    <div className="tiles wd-stats" style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
+      {stats.map(([l, v]) => <div key={l} className="tile"><div className="l">{l}</div><div className="v">{v}</div></div>)}
+    </div>
+    <h4 className="sec wd-sec">{t('Exercises')}</h4>
     {grouped ? groups.map(g => {
       const r = g.rid ? st.routines.find(x => x.id === g.rid) : null
       const items = g.items.map(i => w.entries[i])
@@ -2557,59 +2584,48 @@ function WorkoutDetail({ w, close }) {
     <textarea ref={noteRef} className="input" rows={2} maxLength={NOTE_MAX} value={note}
       placeholder={t('How the session went as a whole.')}
       onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} onBlur={saveNote} />
-    <div style={{ height: 14 }} />
-    {st.active && <p className="small muted">{t('Finish the current workout first.')}</p>}
-    {/* The editor starts from the record as it is, so a note typed here goes in first — the same
-        flush the date row does, and the unmount hook then has nothing left to write over it. */}
-    <Button icon="pencil" disabled={!!st.active} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      try { update(state => { editCompletedSession(state, w) }); closeThenNav(close, '/workout') }
-      catch (error) { toast(t(error.message)) }
-    }}>{t('Edit workout')}</Button>
-    <div style={{ height: 8 }} />
-    {/* The same exercises again, today, as a new session (#58): the rows read what was logged
-        in this workout. The record itself stays as it is. */}
-    <Button icon="reset" disabled={!!st.active} style={{ marginBottom: 8 }} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      repeatWorkout(w, close)
-    }}>{t('Repeat today')}</Button>
-    {/* The note lives in a textarea that only writes on blur, and moving the workout re-keys a
-        legacy record — so flush it first and stop the unmount hook writing it a second time. */}
-    <Button icon="calendar" style={{ marginBottom: 8 }} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      workoutDateSheet(w, close)
-    }}>{t('Change date & time')}</Button>
-    <Button icon="stopwatch" style={{ marginBottom: 8 }} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      workoutDurationSheet(w, close)
-    }}>{t('Change duration')}</Button>
-    <Button icon="plus" onClick={() => confirmSheet({
-      title: t('Save as routine?'),
-      message: t('Create an independent routine from these exercise targets. Your workout history is kept.'),
-      confirmText: t('Save'),
-      onConfirm: () => {
-        let id
-        try { update(s => { id = saveSessionAsRoutine(s, w, w.name) }) }
-        catch (e) { toast(t(e.message)); return }
-        close()
-        nav('/plan/r/' + id)
-      }
-    })}>{t('Save as routine')}</Button>
-    <div style={{ height: 8 }} />
-    <Button icon="copy" onClick={copyAsText}>{t('Copy as text')}</Button>
-    <div style={{ height: 8 }} />
-    <Button icon="share" onClick={shareAsImage}>{t('Share as image')}</Button>
-    <div style={{ height: 8 }} />
-    <Button icon="download" onClick={exportFit}>{t('Export as .fit file')}</Button>
-    <div style={{ height: 10 }} />
+    {st.active && <p className="small muted" style={{ marginTop: 14 }}>{t('Finish the current workout first.')}</p>}
+    {/* The two things a past session is opened to do, side by side; everything else is a row in a
+        grouped list below, as in a settings page, instead of eight equal buttons in a column. */}
+    <div className="wd-acts">
+      {/* The editor starts from the record as it is, so a note typed here goes in first. */}
+      <Button variant="tinted" icon="pencil" disabled={!!st.active} onClick={() => {
+        flushNote()
+        try { update(state => { editCompletedSession(state, w) }); closeThenNav(close, '/workout') }
+        catch (error) { toast(t(error.message)) }
+      }}>{t('Edit workout')}</Button>
+      {/* The same exercises again, today, as a new session (#58): the rows read what was logged
+          in this workout. The record itself stays as it is. */}
+      <Button variant="primary" icon="reset" disabled={!!st.active} onClick={() => { flushNote(); repeatWorkout(w, close) }}>{t('Repeat today')}</Button>
+    </div>
+    <ActionGroup items={[
+      { icon: 'calendar', label: t('Change date & time'), chevron: true, onClick: () => { flushNote(); workoutDateSheet(w, close) } },
+      { icon: 'stopwatch', label: t('Change duration'), chevron: true, onClick: () => { flushNote(); workoutDurationSheet(w, close) } },
+      { icon: 'plus', label: t('Save as routine'), onClick: saveAsRoutine },
+    ]} />
+    <ActionGroup title={t('Share & export')} items={[
+      { icon: 'copy', label: t('Copy as text'), onClick: copyAsText },
+      { icon: 'share', label: t('Share as image'), chevron: true, onClick: shareAsImage },
+      { icon: 'download', label: t('Export as .fit file'), onClick: exportFit },
+    ]} />
     {/* Matched the way the edits above are, not by id: a workout from before ids has none, and
         filtering on `x.id !== undefined` took every other one of them with it. */}
-    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.') + mediaGoesToo(S().workouts.find(x => sameWorkout(x, w))), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => !sameWorkout(x, w)) }); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
+    <ActionGroup items={[{ icon: 'trash', label: t('Delete workout'), danger: true, onClick: deleteWorkout }]} />
   </>
+}
+// A settings-style group of action rows: the menu sheet's look, but real buttons that stay on
+// this sheet, since most of them open another sheet over it rather than closing it.
+function ActionGroup({ title, items }) {
+  return <div className="menu-group grouped wd-group">
+    {title && <div className="menu-sec">{title}</div>}
+    <div className="list menu-list">
+      {items.map(it => <button key={it.label} type="button" className={'item menu-item' + (it.danger ? ' danger' : '')} onClick={it.onClick}>
+        <span className="lrow-i"><Icon name={it.icon} /></span>
+        <div className="grow"><div className="tt">{it.label}</div></div>
+        {it.chevron && <Icon name="chevronRight" className="menu-chev" />}
+      </button>)}
+    </div>
+  </div>
 }
 // "Share as image" (#453): the card lib/workout-card.js lays out, painted in the theme and accent
 // the app is showing right now, previewed before it goes anywhere. The muscle map is the finish

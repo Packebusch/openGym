@@ -73,8 +73,8 @@ function Prescription({ entry, setIdx, unit, fallbackRest, children }) {
   const rpe = target.rpeMin > 0
     ? `RPE ${fmtNum(target.rpeMin)}${target.rpeMax > target.rpeMin ? `–${fmtNum(target.rpeMax)}` : ''}`
     : ''
-  const rest = target.restSec > 0 ? `Rest ${target.restSec}s` : fallbackRest > 0 ? `Rest ${fallbackRest}s` : ''
-  const badges = [reps && `${reps} Reps`, load, rpe, rest, target.tempo].filter(Boolean)
+  const rest = target.restSec > 0 ? `${t('Rest')} ${target.restSec}s` : fallbackRest > 0 ? `${t('Rest')} ${fallbackRest}s` : ''
+  const badges = [reps && `${reps} ${t('Reps')}`, load, rpe, rest, target.tempo].filter(Boolean)
 
   return <div className="focus-prescription">
     <span className="focus-badge focus-progress">{setIdx + 1}/{entry.sets.length}</span>
@@ -177,21 +177,21 @@ export default function FocusView({
           onClick={() => onToggleSide(setIdx, side,
             !sideSet.done && (set.sides.L.done || set.sides.R.done) ? onProgress : undefined)}><Icon name="check" /></button>
       </div>
-      <Stepper label={t('Load ({0})', S.unit)} ariaLabel="load" value={sideSet.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly || sideSet.done}
+      <Stepper label={t('Load ({0})', S.unit)} ariaLabel={t('load')} value={sideSet.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly || sideSet.done}
         onChange={value => change('w', value)} />
-      <Stepper label={t('Reps')} ariaLabel="reps" value={sideSet.r || 0} step={1} decimal={false} disabled={readOnly || sideSet.done}
+      <Stepper label={t('Reps')} ariaLabel={t('reps')} value={sideSet.r || 0} step={1} decimal={false} disabled={readOnly || sideSet.done}
         onChange={value => change('r', value)} />
       <div className="focus-extras">
         {sideDrops.map((drop, index) => <div className="focus-extra" key={`drop-${index}`}>
           <span>{t('Drop {0}', index + 1)}</span>
-          <Stepper label={t('Load')} ariaLabel="load" value={drop.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly || sideSet.done}
+          <Stepper label={t('Load')} ariaLabel={t('load')} value={drop.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly || sideSet.done}
             onChange={value => onMutateSet(setIdx, row => setSideDropAt(row, side, index, { w: value }))} />
-          <Stepper label={t('Reps')} ariaLabel="reps" value={drop.r || 0} step={1} decimal={false} disabled={readOnly || sideSet.done}
+          <Stepper label={t('Reps')} ariaLabel={t('reps')} value={drop.r || 0} step={1} decimal={false} disabled={readOnly || sideSet.done}
             onChange={value => onMutateSet(setIdx, row => setSideDropAt(row, side, index, { r: value }))} />
         </div>)}
         {sideBursts.map((burst, index) => <div className="focus-extra" key={`burst-${index}`}>
           <span>{t('Burst {0}', index + 1)}</span>
-          <Stepper label={t('Reps')} ariaLabel="reps" value={burst.r || 0} step={1} decimal={false} disabled={readOnly || sideSet.done}
+          <Stepper label={t('Reps')} ariaLabel={t('reps')} value={burst.r || 0} step={1} decimal={false} disabled={readOnly || sideSet.done}
             onChange={value => onMutateSet(setIdx, row => setSideClusterAt(row, side, index, value))} />
           <span className="dim small">{burst.restSec}s</span>
         </div>)}
@@ -217,7 +217,12 @@ export default function FocusView({
     sides.forEach((side, index) => onToggleSide(setIdx, side, index === sides.length - 1 ? onProgress : undefined))
   }
 
-  const openEffort = () => effortPickerSheet(effort, effortValue, value => onField(setIdx, effortField, value))
+  // Rating a set concludes it, as in the list (issue #64): a value ticks a set that is not done
+  // yet; clearing the rating never unticks.
+  const openEffort = () => effortPickerSheet(effort, effortValue, value => {
+    onField(setIdx, effortField, value)
+    if (value != null && !set.done) complete()
+  })
 
   const openExerciseMenu = () => menuSheet({
     title: exerciseNameFor(exOr(entry.id)),
@@ -289,36 +294,36 @@ export default function FocusView({
       <div data-testid="focus-set" className={(set.done ? 'complete ' : '') + (locked ? 'locked' : '')}>
         {isSideSet(set) ? <div className="focus-sides">{sideFields('L')}{sideFields('R')}</div> : <>
           {mode === 'cardio' ? <>
-            <Stepper label={t('Duration (min)')} ariaLabel="duration" value={set.min || 0} step={1} decimal={false} disabled={readOnly}
+            <Stepper label={t('Duration (min)')} ariaLabel={t('duration')} value={set.min || 0} step={1} decimal={false} disabled={readOnly}
               onChange={value => onField(setIdx, 'min', value)} />
             {/* Stored in km/h, shown and typed in the profile's speed unit, as on every other
                 cardio input (lib/speed.js). */}
-            <Stepper label={speedUnit === 'mph' ? t('Speed (mph)') : t('Speed (km/h)')} ariaLabel="speed" value={toSpeed(set.speed || 0, speedUnit)} step={0.5} disabled={readOnly}
+            <Stepper label={speedUnit === 'mph' ? t('Speed (mph)') : t('Speed (km/h)')} ariaLabel={t('speed')} value={toSpeed(set.speed || 0, speedUnit)} step={0.5} disabled={readOnly}
               onChange={value => onField(setIdx, 'speed', fromSpeed(value, speedUnit))} />
             {/* The treadmill's grade, where the exercise has one (lib/incline.js). */}
-            {(inclineFits(ex) || entry.sets.some(hasIncline)) && <Stepper label={t('Incline (%)')} ariaLabel="incline" value={set.incline || 0} step={INCLINE_STEP} max={INCLINE_MAX} disabled={readOnly}
+            {(inclineFits(ex) || entry.sets.some(hasIncline)) && <Stepper label={t('Incline (%)')} ariaLabel={t('incline')} value={set.incline || 0} step={INCLINE_STEP} max={INCLINE_MAX} disabled={readOnly}
               onChange={value => onField(setIdx, 'incline', clampIncline(value))} />}
           </> : <>
-            <Stepper label={t('Load ({0})', S.unit)} ariaLabel="load" value={set.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly}
+            <Stepper label={t('Load ({0})', S.unit)} ariaLabel={t('load')} value={set.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly}
               onChange={value => onField(setIdx, 'w', value)} />
           {mode === 'time' ? <div className="focus-timed">
             <strong>{t('{0}s hold', set.sec || entry.target?.sec || 45)}</strong>
             <Button icon="play" aria-label={t('Start set')} disabled={readOnly || busy}
               onClick={() => onStartTimed(setIdx, onProgress)}>{t('Start')}</Button>
-          </div> : <Stepper label={t('Reps')} ariaLabel="reps" value={set.r || 0} step={1} decimal={false} disabled={readOnly}
+          </div> : <Stepper label={t('Reps')} ariaLabel={t('reps')} value={set.r || 0} step={1} decimal={false} disabled={readOnly}
             onChange={value => onField(setIdx, 'r', value)} />}</>}
         </>}
         <div className="focus-extras">
           {drops.map((drop, index) => <div className="focus-extra" key={`drop-${index}`}>
             <span>{t('Drop {0}', index + 1)}</span>
-            <Stepper label={t('Load')} ariaLabel="load" value={drop.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly}
+            <Stepper label={t('Load')} ariaLabel={t('load')} value={drop.w || 0} step={loadStep} onStep={stepLoad} disabled={readOnly}
               onChange={value => onMutateSet(setIdx, row => setDropAt(row, index, { w: value }))} />
-            <Stepper label={t('Reps')} ariaLabel="reps" value={drop.r || 0} step={1} decimal={false} disabled={readOnly}
+            <Stepper label={t('Reps')} ariaLabel={t('reps')} value={drop.r || 0} step={1} decimal={false} disabled={readOnly}
               onChange={value => onMutateSet(setIdx, row => setDropAt(row, index, { r: value }))} />
           </div>)}
           {bursts.map((burst, index) => <div className="focus-extra" key={`burst-${index}`}>
             <span>{t('Burst {0}', index + 1)}</span>
-            <Stepper label={t('Reps')} ariaLabel="reps" value={burst.r || 0} step={1} decimal={false} disabled={readOnly}
+            <Stepper label={t('Reps')} ariaLabel={t('reps')} value={burst.r || 0} step={1} decimal={false} disabled={readOnly}
               onChange={value => onMutateSet(setIdx, row => {
                 const delta = (Number(value) || 0) - (clustersOf(row)[index]?.r ?? row.clusters?.[index]?.r ?? 0)
                 return { ...setClusterAt(row, index, { r: value }), r: Math.max(0, (row.r || 0) + delta) }
@@ -330,7 +335,11 @@ export default function FocusView({
           style={effortTint ? { color: effortTint, borderColor: effortTint, background: `color-mix(in srgb, ${effortTint} 20%, var(--surface-2))` } : undefined}
           aria-label={t(EFFORT[effort].hd)} disabled={readOnly} onClick={openEffort}>{effortValue == null ? t(EFFORT[effort].hd) : fmtNum(effortValue)}</button>}
       </div>
-      <Button variant="primary" icon="check" aria-label={t('Complete set')} onClick={complete}>{set.done ? t('Completed') : t('Complete')}</Button>
+      {/* A done set's button takes it back, and says so: "Completed" read as a status, and a second
+          tap on it silently unticked the set. */}
+      {set.done
+        ? <Button icon="undo" aria-label={t('Undo set')} onClick={complete}>{t('Undo')}</Button>
+        : <Button variant="primary" icon="check" aria-label={t('Complete set')} onClick={complete}>{t('Complete')}</Button>}
       <div className="focus-secondary">
         <button className="focus-skip" aria-label={t('Skip set')} disabled={setIdx >= entry.sets.length - 1} onClick={() => selectSet(setIdx + 1)}>
           <Icon name="play" />{t('Skip')}

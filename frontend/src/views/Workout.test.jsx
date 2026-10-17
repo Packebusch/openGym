@@ -666,6 +666,30 @@ describe('active workout weight controls', () => {
     expect(mocks.S.active.entries[0].sets[0].w).toBe(62.5)
   })
 
+  it('repeats a held + from the weight it is at, and stops when the finger moves off', async () => {
+    await mount([exercise('plain-bench', [false], {
+      target: { mode: 'reps', reps: 5, weight: 60, bodyweight: false, inc: 1 },
+    })])
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    try {
+      const plus = () => container.querySelector('.setrow .stp.w button[aria-label="Increase"]')
+      const fire = (el, type, x = 0) => act(() => { const e = new dom.Event(type, { bubbles: true }); e.button = 0; e.clientX = x; e.clientY = 0; el.dispatchEvent(e) })
+      fire(plus(), 'pointerdown')
+      for (let k = 0; k < 4; k++) act(() => vi.advanceTimersByTime(k ? 80 : 480))
+      await rerender()
+      expect(mocks.S.active.entries[0].sets[0].w).toBe(64)
+      fire(plus(), 'pointerup')
+      await act(async () => { plus().dispatchEvent(new dom.Event('click', { bubbles: true })) })
+      expect(mocks.S.active.entries[0].sets[0].w).toBe(64)   // the click after a hold adds nothing
+
+      // a swipe that starts on the button is not a hold
+      fire(plus(), 'pointerdown', 0)
+      fire(plus(), 'pointermove', 30)
+      act(() => vi.advanceTimersByTime(1000))
+      expect(mocks.S.active.entries[0].sets[0].w).toBe(64)
+    } finally { vi.useRealTimers() }
+  })
+
   it.each(['list', 'cards', 'compact'])('keeps added weight editable at zero in %s view', async workoutView => {
     await mount([exercise('bodyweight-pull-up', [false], {
       target: { mode: 'reps', reps: 8, weight: 0, bodyweight: true, inc: 1 },
@@ -1782,8 +1806,11 @@ describe('workout focus view', () => {
       exercise('plain-row', [false]),
     ], 0, { active: { workoutView: 'focus' } })
 
-    await click(buttonNamed('Complete set'))
+    // a done set's button reads Undo, not Completed
+    expect(buttonNamed('Complete set')).toBeNull()
+    await click(buttonNamed('Undo set'))
     await rerender()
+    expect(mocks.S.active.entries[0].sets[0].done).toBe(false)
     await click(buttonNamed('Complete set'))
 
     expect(mocks.S.active.entries[0].sets[0].done).toBe(true)
@@ -2453,6 +2480,23 @@ describe('collapsing completed workout exercises', () => {
     await toggleSet(1)
     await rerender()
     expect(mocks.S.active.cur).toBe(0)
+  })
+
+  it('a double tap on a tick logs the set once; a later tap unticks it', async () => {
+    await mount([exercise('bench', [false, false])], 0, { active: { workoutView: 'list' } })
+    let now = 1_000_000
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => now)
+    try {
+      await toggleSet(0)
+      now += 200
+      await toggleSet(0)
+      await rerender()
+      expect(mocks.S.active.entries[0].sets[0].done).toBe(true)
+      now += 600
+      await toggleSet(0)
+      await rerender()
+      expect(mocks.S.active.entries[0].sets[0].done).toBe(false)
+    } finally { clock.mockRestore() }
   })
 
   it('keeps the marker where it is when collapsing is off', async () => {

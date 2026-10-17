@@ -87,6 +87,19 @@ describe('SwipeCards', () => {
     expect(host.querySelector('.workout-swipe-preview')).toBeNull()
   })
 
+  it('leaves a swipe from the screen edge to the system back gesture', () => {
+    render()
+    pointer('pointerdown', 10)
+    pointer('pointermove', 200)
+    pointer('pointerup', 200)
+    act(() => vi.advanceTimersByTime(201))
+    pointer('pointerdown', window.innerWidth - 10)
+    pointer('pointermove', window.innerWidth - 200)
+    pointer('pointerup', window.innerWidth - 200)
+    act(() => vi.advanceTimersByTime(201))
+    expect(props.onNavigate).not.toHaveBeenCalled()
+  })
+
   it('resists unavailable edges and leaves mouse input alone', () => {
     render()
 

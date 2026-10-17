@@ -2247,4 +2247,11 @@ export default {
   'See exercises': 'Übungen ansehen',
   'Plan for {0}': 'Für {0} planen',
   'Start now': 'Jetzt starten',
+  'load': 'Gewicht',
+  'duration': 'Dauer',
+  'speed': 'Geschwindigkeit',
+  'incline': 'Steigung',
+  'Undo set': 'Satz rückgängig',
+  '15 seconds less': '15 Sekunden weniger',
+  '15 seconds more': '15 Sekunden mehr',
 }

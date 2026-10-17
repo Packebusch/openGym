@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { inEdgeZone } from '../lib/use-swipe-row.js'
 
 // What a card swipe never starts on: things that take a sideways drag themselves (a slider, a
 // chip row that scrolls, a video's scrubber, a text area), and what has its own swipe (a set row,
@@ -117,6 +118,8 @@ export default function SwipeCards({ children, renderPreview, onNavigate, index,
     swallow.current.on = false
     if (pending.current || gesture.current) return
     if (event.pointerType && event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+    // The screen edges are the system's back gesture, as on a set row (lib/use-swipe-row.js).
+    if (typeof window !== 'undefined' && window.innerWidth && inEdgeZone(event.clientX, window.innerWidth)) return
     const target = event.target
     if (target?.closest?.(IGNORED_TARGETS)) return
     // A field you are typing in keeps a sideways drag for its caret.

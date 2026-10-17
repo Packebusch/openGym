@@ -138,56 +138,61 @@ export function Segmented({ options, value, onChange, className = '' }) {
 
 /* ============================ stepper ============================ */
 
-// `min` and `max` hold for the buttons at once, but for typing only once the field is left:
-// clamped on every keystroke, a field emptied to type a new number snapped to the minimum, and
-// the digits typed next landed after it (a 48 retyped as 75 saved 175).
-export function Stepper({ value, step = 1, min = 0, max = Infinity, onChange, decimal = true, className = '', label, unit, invalid = false, disabled = false, onStep, ariaLabel }) {
-  const clamp = v => Math.min(max, Math.max(min, v))
-  const set = v => onChange(clamp(Math.round((v || 0) * 100) / 100))
-  // Holding a button repeats the step; the latest value/step live in a ref so
-  // the interval doesn't keep stepping from the value it was started with.
-  const live = useRef({ value, step, set })
-  live.current = { value, step, set }
-  const hold = useRef({ delay: null, tick: null, count: 0, repeated: false })
-  const bump = dir => { const { value, step, set } = live.current; set(onStep ? onStep(value, step, dir) : (+value || 0) + dir * step) }
-  const stopHold = () => {
+// A +/- button that repeats while held: one step on a tap, then after 400 ms a step every
+// 80 ms, every 40 ms after fifteen, so a held + covers 60 -> 100 kg without sixteen taps.
+// `onStep` is read at each tick, so it may read the store for the current value. A finger
+// that moves (a row or card swipe starting on the button) stops the hold before it repeats.
+export function HoldButton({ onStep, children, disabled, ...rest }) {
+  const live = useRef(onStep)
+  live.current = onStep
+  const hold = useRef({ delay: null, tick: null, count: 0, repeated: false, x: 0, y: 0 })
+  const stop = () => {
     const h = hold.current
     window.clearTimeout(h.delay); window.clearInterval(h.tick)
     h.delay = h.tick = null
   }
-  const startHold = dir => {
-    stopHold()
+  const start = e => {
+    stop()
     const h = hold.current
-    h.repeated = false; h.count = 0
+    h.repeated = false; h.count = 0; h.x = e.clientX || 0; h.y = e.clientY || 0
     h.delay = window.setTimeout(() => {
       const run = () => {
         h.repeated = true; h.count++
-        bump(dir)
+        live.current()
         // modest acceleration after a bit of holding so a long hold covers ground
         if (h.count === 15) { window.clearInterval(h.tick); h.tick = window.setInterval(run, 40) }
       }
       h.tick = window.setInterval(run, 80)
     }, 400)
   }
-  // The click that follows pointerup must not add a step once the hold repeated.
-  const click = dir => {
-    if (hold.current.repeated) { hold.current.repeated = false; return }
-    bump(dir)
-  }
-  useEffect(() => stopHold, [])
-  const holdProps = dir => ({
-    onPointerDown: e => { if (e.button === 0 || e.button == null) startHold(dir) },
-    onPointerUp: stopHold, onPointerCancel: stopHold, onPointerLeave: stopHold, onBlur: stopHold,
-    onClick: () => click(dir),
-  })
+  useEffect(() => stop, [])
+  return <button type="button" {...rest} disabled={disabled}
+    onPointerDown={e => { if (e.button === 0 || e.button == null) start(e) }}
+    onPointerMove={e => { const h = hold.current; if (h.delay && Math.hypot((e.clientX || 0) - h.x, (e.clientY || 0) - h.y) > 10) stop() }}
+    onPointerUp={stop} onPointerCancel={stop} onPointerLeave={stop} onBlur={stop}
+    // The click that follows pointerup must not add a step once the hold repeated.
+    onClick={() => { if (hold.current.repeated) { hold.current.repeated = false; return } live.current() }}>{children}</button>
+}
+
+// `min` and `max` hold for the buttons at once, but for typing only once the field is left:
+// clamped on every keystroke, a field emptied to type a new number snapped to the minimum, and
+// the digits typed next landed after it (a 48 retyped as 75 saved 175).
+export function Stepper({ value, step = 1, min = 0, max = Infinity, onChange, decimal = true, className = '', label, unit, invalid = false, disabled = false, onStep, ariaLabel }) {
+  const clamp = v => Math.min(max, Math.max(min, v))
+  const set = v => onChange(clamp(Math.round((v || 0) * 100) / 100))
+  // The latest value/step live in a ref so a held button keeps stepping from the value it is
+  // at, not the one the hold started with.
+  const live = useRef({ value, step, set })
+  live.current = { value, step, set }
+  const bump = dir => { const { value, step, set } = live.current; set(onStep ? onStep(value, step, dir) : (+value || 0) + dir * step) }
   const inner = (
     <div className={'stp ' + className}>
-      <button {...holdProps(-1)} aria-label={ariaLabel ? `Decrease ${ariaLabel}` : t('Decrease')} disabled={disabled}><Icon name="minus" /></button>
+      <HoldButton onStep={() => bump(-1)} aria-label={ariaLabel ? `${t('Decrease')} ${ariaLabel}` : t('Decrease')} disabled={disabled}><Icon name="minus" /></HoldButton>
       <span className="val" onBlur={() => { const v = +value || 0; if (clamp(v) !== v) onChange(clamp(v)) }}>
         <NumberField value={value} decimal={decimal} onChange={onChange} disabled={disabled} aria-invalid={invalid ? 'true' : undefined} />
         {unit && <i>{unit}</i>}
       </span>
-      <button {...holdProps(1)} aria-label={ariaLabel ? `Increase ${ariaLabel}` : t('Increase')} disabled={disabled}><Icon name="plus" /></button>
+      <HoldButton onStep={() => bump(1)} aria-label={ariaLabel ? `${t('Increase')} ${ariaLabel}` : t('Increase')} disabled={disabled}><Icon name="plus" /></HoldButton>
     </div>
   )
   if (!label) return inner

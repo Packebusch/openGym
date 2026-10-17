@@ -31,7 +31,7 @@ import { afterScrollRestore, scrollRestorePending } from '../components/Modals.j
 import { effortColor } from '../lib/effort.js'
 import Elapsed from '../components/Elapsed.jsx'
 import Icon from '../components/Icon.jsx'
-import { Button, Check, NumberField } from '../components/ui.jsx'
+import { Button, Check, HoldButton, NumberField } from '../components/ui.jsx'
 import { defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
 import { progressionGuidance } from '../lib/progression-copy.js'
 import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../lib/session-start.js'
@@ -336,10 +336,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const wc = workoutControls(S)
   const cell = (s, i, col, cls) => (
     <div className={'stp ' + cls + (wc.steppers ? '' : ' plain')}>
-      {wc.steppers && <button aria-label={t('Decrease')} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>}
+      {wc.steppers && <HoldButton aria-label={t('Decrease')} onStep={() => bump(s, i, col, -1)}><Icon name="minus" /></HoldButton>}
       <span className="val"><NumberField decimal={col.dec} nullable={col.opt} value={viewOf(col, s[col.f]) ?? ''}
         onChange={v => onField(i, col.f, col.store ? col.store(v) : v)} /></span>
-      {wc.steppers && <button aria-label={t('Increase')} onClick={() => bump(s, i, col, 1)}><Icon name="plus" /></button>}
+      {wc.steppers && <HoldButton aria-label={t('Increase')} onStep={() => bump(s, i, col, 1)}><Icon name="plus" /></HoldButton>}
     </div>
   )
   // Plate loading, per set row (lib/plates.js): which plates make THIS row's weight, from the
@@ -522,10 +522,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   }
   const sideCell = (sd, i, side, col, cls) => (
     <div className={'stp ' + cls + (wc.steppers ? '' : ' plain')}>
-      {wc.steppers && <button aria-label={t('Decrease')} onClick={() => sideBump(i, side, col, -1)}><Icon name="minus" /></button>}
+      {wc.steppers && <HoldButton aria-label={t('Decrease')} onStep={() => sideBump(i, side, col, -1)}><Icon name="minus" /></HoldButton>}
       <span className="val"><NumberField decimal={col.dec} value={sd[col.f] ?? ''}
         onChange={v => setSide(i, side, col.f, v)} /></span>
-      {wc.steppers && <button aria-label={t('Increase')} onClick={() => sideBump(i, side, col, 1)}><Icon name="plus" /></button>}
+      {wc.steppers && <HoldButton aria-label={t('Increase')} onStep={() => sideBump(i, side, col, 1)}><Icon name="plus" /></HoldButton>}
     </div>
   )
   const sideEffortCell = (sd, i, side, col) => {
@@ -1637,7 +1637,15 @@ function ActiveWorkout() {
   // `quiet`: the hold that ticks this set has just ended with the chime and its buzz pattern
   // (store/useUI.js). The tick's own beep would sound over the chime's first note and clip it,
   // and its short buzz would cut the pattern off: a new vibrate call replaces the running one.
+  // The last tick, to tell a double tap from a deliberate untick: with a sweaty thumb the second
+  // tap of a double tap used to log the set and take it straight back out.
+  const lastTick = useRef(null)
+  const UNTICK_GUARD_MS = 500
   const toggle = (idx, i, side, { quiet = false, onFocusProgress } = {}) => {
+    const row = useStore.getState().S.active?.entries[idx]?.sets[i]
+    const isDone = side ? !!row?.sides?.[side]?.done : !!row?.done
+    const lt = lastTick.current
+    if (isDone && lt && lt.idx === idx && lt.i === i && lt.side === side && Date.now() - lt.at < UNTICK_GUARD_MS) return
     // Ticking a set ends the typing in that row: drop the keyboard before the rest timer, the
     // effort sheet or the next exercise moves in. WebKit keeps the input focused across the
     // button tap, and a focused input with its keyboard gone is what leaves the tab bar
@@ -1653,6 +1661,7 @@ function ActiveWorkout() {
       if (side) e.sets[i] = toggleSide(e.sets[i], side)
       else e.sets[i].done = !e.sets[i].done
       checked = e.sets[i].done
+      lastTick.current = (side ? e.sets[i].sides[side].done : checked) ? { idx, i, side, at: Date.now() } : null
       // When the work happened, for the session's end (lib/finish-workout.js sessionEnd).
       if (!editing && (side ? e.sets[i].sides[side].done : checked)) e.sets[i].at = Date.now()
       // A finished row has no use for a plan set aside by a hold that did not finish.

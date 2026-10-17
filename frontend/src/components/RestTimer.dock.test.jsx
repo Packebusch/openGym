@@ -51,7 +51,7 @@ describe('the docked rest bar', () => {
     expect(bar.querySelector('button.tclock .t').textContent).toBe('1:30')
     expect(bar.querySelector('.tclock .lbl').textContent).toBe('Rest')
     expect([...bar.querySelectorAll('.acts > button')].map(b => b.getAttribute('aria-label') || (b.querySelector('.on') || b).textContent.trim()))
-      .toEqual(['15s', '15s', 'Pause', 'Skip'])
+      .toEqual(['15 seconds less', '15 seconds more', 'Pause', 'Skip'])
     expect(bar.querySelector('.tclock').getAttribute('aria-label')).toBe('1:30. Change the time left')
   })
 

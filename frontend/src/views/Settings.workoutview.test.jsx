@@ -66,24 +66,37 @@ afterEach(() => {
 const mount = () => act(() => root.render(<Settings page="workout" />))
 const segButton = label => [...host.querySelectorAll('.seg button')].find(b => b.textContent === label)
 
+// Two layouts (design audit, proposal 4): Focus and Overview; Overview's compact rows are a switch
+// of their own, stored as the old 'compact' value so a profile keeps what it had.
 describe('Settings — workout view', () => {
-  it('offers Cards / List / Compact / Focus and writes workoutView to the store', () => {
-    mount()
-    expect(['Cards', 'List', 'Compact', 'Focus'].every(label => segButton(label))).toBe(true)
-    expect(segButton('Cards').getAttribute('aria-pressed')).toBe('true')
+  const sw = title => [...host.querySelectorAll('[role="switch"], button[aria-label]')].find(b => b.getAttribute('aria-label') === title)
 
-    for (const [label, value] of [['List', 'list'], ['Compact', 'compact'], ['Focus', 'focus'], ['Cards', 'cards']]) {
-      act(() => { segButton(label).click() })
-      expect(mocks.S.workoutView).toBe(value)
-      mount()
-      expect(segButton(label).getAttribute('aria-pressed')).toBe('true')
-    }
+  it('offers Focus / Overview and writes workoutView to the store', () => {
+    mount()
+    expect(segButton('Focus').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('Cards')).toBeUndefined()
+    act(() => { segButton('Overview').click() })
+    expect(mocks.S.workoutView).toBe('list')
+    mount()
+    expect(segButton('Overview').getAttribute('aria-pressed')).toBe('true')
+    act(() => { segButton('Focus').click() })
+    expect(mocks.S.workoutView).toBe('cards')
   })
 
-  it('shows a legacy/absent value as Cards', () => {
-    mocks.S.workoutView = 'grid'
+  it('Compact rows shows only under Overview, and is the old compact view', () => {
     mount()
-    expect(segButton('Cards').getAttribute('aria-pressed')).toBe('true')
-    expect(segButton('Focus').getAttribute('aria-pressed')).toBe('false')
+    expect(host.textContent).not.toContain('Compact rows')
+    mocks.S.workoutView = 'compact'
+    mount()
+    expect(segButton('Overview').getAttribute('aria-pressed')).toBe('true')
+    expect(host.textContent).toContain('Compact rows')
+  })
+
+  it('shows the old Focus view, and a legacy or absent value, as Focus', () => {
+    for (const v of ['focus', 'grid', undefined]) {
+      mocks.S.workoutView = v
+      mount()
+      expect(segButton('Focus').getAttribute('aria-pressed')).toBe('true')
+    }
   })
 })

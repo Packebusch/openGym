@@ -70,9 +70,8 @@ describe('workout keys (issue #133)', () => {
     expect(doneOf(0)).toEqual([true, true, true])
   })
 
-  it('Space and Enter tick Focus sets through the same handler', () => {
+  it('a session saved in the old Focus view ticks with Space and Enter as Focus does now', () => {
     renderWorkout([entry('1001', [false, false])], 0, { workoutView: 'focus' })
-    expect(container.querySelector('[data-testid="focus-view"]')).toBeTruthy()
     press(' ')
     press('Enter')
     expect(doneOf(0)).toEqual([true, true])

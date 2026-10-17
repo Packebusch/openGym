@@ -90,7 +90,7 @@ describe('the root', () => {
     expect(host.querySelector('.sp-acct .lrow-s').textContent).toBe('Your data lives on this device. Sign in to sync.')
     // a guest in a browser has no reminders (no push server) and no Coach page (the server's Coach)
     expect(titles()).toEqual(['Guest', 'Workout', 'Timer alerts', 'Plan & schedule', 'Units & language', 'Equipment', 'Look & Home', 'Data & backup', 'About & updates'])
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
+    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Focus')
     expect(rowTitled('Timer alerts').querySelector('.lrow-v').textContent).toBe('Sound · Vibrate')
     expect(rowTitled('Plan & schedule').querySelector('.lrow-v').textContent).toMatch(/^Fixed Week · Mon/)
     expect(rowTitled('Units & language').querySelector('.lrow-v').textContent).toBe('kg · English')
@@ -117,10 +117,10 @@ describe('the root', () => {
   it('previews a rest that was never on the old list, and no timer at all', () => {
     mocks.S.restSec = 105
     mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:45 rest · Cards')
+    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:45 rest · Focus')
     mocks.S.restSec = 0
     mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer · Cards')
+    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer · Focus')
   })
 
   it('signed in, Reminders is there and the card names the account; on the phone app the Coach too', () => {
@@ -274,19 +274,21 @@ describe('the pages', () => {
   it('every old row has a home: the Workout page holds the rest, logging and the before/during rows', () => {
     mount('workout')
     expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['Rest', 'Logging', 'Before and during'])
+    // Collapse completed exercises belongs to Overview, and shows with it (design audit, proposal 4).
     expect(titles()).toEqual(['Rest timer', 'Rest-pause rest', 'Effort per set', 'Shown under each exercise', 'Layout',
-      'Collapse completed exercises', 'Weigh in before workouts', 'Keep screen awake', 'Exercise animations', 'Fine-tuning'])
+      'Weigh in before workouts', 'Keep screen awake', 'Exercise animations', 'Fine-tuning'])
     // QA 10-05: the "screen stays on" line is the awake row's own subtitle, not a section footer
     // that read as if it explained the animations above it.
     expect(rowTitled('Keep screen awake').querySelector('.lrow-s').textContent).toMatch(/^The screen stays on/)
     expect(rowTitled('Exercise animations').querySelector('.lrow-s')).toBeNull()
     expect([...host.querySelectorAll('.sect-f')].some(f => /screen stays on/.test(f.textContent))).toBe(false)
     mount('advanced')
-    expect(titles()).toEqual(['Planned sessions start from', 'Keep timing after target', 'Weight and reps buttons',
-      'Drop and burst shortcuts on every set', 'Swipe actions', 'Exercise chips at the top', 'Superset buttons in the exercise header', 'Move, swap and remove buttons below the exercise'])
+    // The button switches are gone (design audit, proposal 5); swipe is the one left.
+    expect(titles()).toEqual(['Planned sessions start from', 'Keep timing after target', 'Swipe actions'])
   })
 
   it('Collapse completed exercises is saved for every session and drops a running session\'s own choice', () => {
+    mocks.S.workoutView = 'list'
     mount('workout')
     mocks.S.active = { collapseCompleted: false, entries: [] }
     const sw = rowTitled('Collapse completed exercises').querySelector('[role="switch"]')
@@ -296,15 +298,13 @@ describe('the pages', () => {
     expect('collapseCompleted' in mocks.S.active).toBe(false)
   })
 
-  it('the Fine-tuning switches write S.wc as the old Workout controls sheet did', () => {
+  it('the swipe switch writes S.wc, keeping whatever else a profile stored there', () => {
+    mocks.S.wc = { pairButtons: true }
     mount('advanced')
-    act(() => rowTitled('Superset buttons in the exercise header').querySelector('[role="switch"]').click())
-    expect(mocks.S.wc.pairButtons).toBe(true)
-    // the chip row at the top of a workout (#323) is on by default; its switch turns it off
-    const chips = rowTitled('Exercise chips at the top').querySelector('[role="switch"]')
-    expect(chips.getAttribute('aria-checked')).toBe('true')
-    act(() => chips.click())
-    expect(mocks.S.wc.exerciseChips).toBe(false)
+    const swipe = rowTitled('Swipe actions').querySelector('[role="switch"]')
+    expect(swipe.getAttribute('aria-checked')).toBe('true')
+    act(() => swipe.click())
+    expect(mocks.S.wc).toEqual({ pairButtons: true, swipeSets: false })
   })
 
   it('a sub-page names where back goes; Fine-tuning goes back to Workout', () => {
@@ -414,7 +414,7 @@ describe('searchSettings', () => {
       expect(first('Dunkel')).toBe('Theme')
       expect(first('Feste Woche')).toBe('How you train')
       expect(first('Wochenstart')).toBe('Week starts on')
-      expect(first('kompakt')).toBe('Layout')
+      expect(first('Übersicht')).toBe('Layout')
       expect(first('wischen')).toBe('Swipe actions')
       expect(first('Geste')).toBe('Swipe actions')
     } finally { await setLang('en') }

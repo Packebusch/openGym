@@ -27,7 +27,6 @@ let sheetContainer
 
 function setActive(entries, cur = 0) {
   const S = clone(DEF)
-  S.wc = { ...S.wc, exerciseButtons: true }   // the removal button is opt-in now; the menu path is covered in Workout.test.jsx
   S.active = {
     id: 'remove-test', d: '2026-08-11', start: Date.now(), routineId: null,
     name: 'Remove test', bw: null, cur, entries
@@ -43,8 +42,14 @@ function renderWorkout(entries) {
   act(() => root.render(<MemoryRouter><Workout /></MemoryRouter>))
 }
 
-function removeButton() {
-  return [...container.querySelectorAll('button')].find(button => button.textContent.includes('Remove exercise'))
+// Removal lives on each exercise's ⋯ menu (design audit, proposal 5): open the `n`th exercise's
+// menu and hand back its Remove item, or undefined when there is no exercise to open.
+function removeButton(n = 0) {
+  const more = container.querySelectorAll('button[aria-label="More"]')[n]
+  if (!more) return undefined
+  act(() => more.click())
+  const menu = renderTopSheet()
+  return [...menu.querySelectorAll('.menu-item')].find(item => item.textContent.includes('Remove exercise'))
 }
 
 function renderTopSheet() {
@@ -87,11 +92,11 @@ describe('active-session exercise removal', () => {
   it('disables removal for the whole duration of a timed hold', () => {
     renderWorkout([entry('1001')])
     expect(removeButton()).toBeTruthy()
-    expect(removeButton().disabled).toBe(false)
+    expect(removeButton().getAttribute('aria-disabled')).toBe(null)
 
     act(() => useUI.getState().startWork(30, 'Hold', vi.fn()))
 
-    expect(removeButton().disabled).toBe(true)
+    expect(removeButton().getAttribute('aria-disabled')).toBe('true')
   })
 
   it('cancels a pending timed callback before indexes shift and cleans a one-member group', () => {
@@ -152,7 +157,7 @@ describe('active-session exercise removal', () => {
   it('does not mutate before confirmation, leaves state unchanged on Cancel, and removes on Confirm', () => {
     renderWorkout([entry('1001'), entry('1002')])
 
-    act(() => removeButton().click())
+    { const remove = removeButton(); act(() => remove.click()) }
     expect(useStore.getState().S.active.entries.map(e => e.id)).toEqual(['1001', '1002'])
 
     let dialog = renderTopSheet()
@@ -160,26 +165,21 @@ describe('active-session exercise removal', () => {
     act(() => cancel.click())
     expect(useStore.getState().S.active.entries.map(e => e.id)).toEqual(['1001', '1002'])
 
-    act(() => removeButton().click())
+    { const remove = removeButton(); act(() => remove.click()) }
     dialog = renderTopSheet()
     const confirm = [...dialog.querySelectorAll('button')].find(button => button.textContent === 'Remove')
     act(() => confirm.click())
     expect(useStore.getState().S.active.entries.map(e => e.id)).toEqual(['1002'])
   })
 
-  it('uses the selected superset member occurrence rather than its exercise id', () => {
+  it('removes the superset member whose menu it came from, not another of the same exercise', () => {
     renderWorkout([entry('1001', 'pair'), entry('1001', 'pair'), entry('1002')])
     useStore.getState().update(s => {
       s.active.entries[0].target.marker = 'keep-first'
       s.active.entries[1].target.marker = 'remove-second'
     }, false)
 
-    act(() => removeButton().click())
-    const chooser = renderTopSheet()
-    const choices = [...chooser.querySelectorAll('.item')]
-    expect(choices).toHaveLength(2)
-    act(() => choices[1].click())
-
+    { const remove = removeButton(1); act(() => remove.click()) }
     const dialog = renderTopSheet()
     const confirm = [...dialog.querySelectorAll('button')].find(button => button.textContent === 'Remove')
     act(() => confirm.click())
@@ -202,7 +202,6 @@ describe('remove-exercise locale coverage', () => {
     'The sets you logged for this exercise in this session will be lost.',
     'This removes the exercise from your current session.',
     'Remove',
-    'Which exercise in this superset do you want to remove?'
   ]
   const packs = import.meta.glob('../locales/*.js', { eager: true, import: 'default' })
   // Every non-English language has its own pack (English is the source, so it has none),

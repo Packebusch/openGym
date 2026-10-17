@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
+import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, streakWeeks, lastBW, setsDoneActive, workoutDay } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, isoOf, weekStartOf, weekDayOffset, exerciseNameText, DAYS, DAYN } from '../lib/format.js'
 import { t, tn, dateLocale } from '../lib/i18n.js'
-import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor, weighInsSheet, sessionPreviewSheet } from '../sheets.jsx'
+import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor, weighInsSheet, sessionPreviewSheet, openDaySheet } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import QueueRow from '../components/QueueRow.jsx'
@@ -40,14 +40,20 @@ export default function Home() {
   const editingSaved = !!S.active?.editingWorkoutId
   const bw = lastBW(S)
   const prevBW = S.bodyweight.length > 1 ? S.bodyweight[S.bodyweight.length - 2] : null
-  const delta = bw && prevBW ? bw.w - prevBW.w : null
+  // With a starting weight set, the arrow tells how far you have come since then; without one,
+  // how far the last weigh-in moved from the one before.
+  const fromStart = Number.isFinite(S.startW) && S.startW > 0
+  const delta = bw ? (fromStart ? bw.w - S.startW : prevBW ? bw.w - prevBW.w : null) : null
 
   const ws = weekStartOf(S)
   // The first day of the shown week. Named for the role, not for Monday — which day that is
   // is the setting.
   const wkStart = new Date(today)
   wkStart.setDate(today.getDate() - weekDayOffset(today.getDay(), ws) + weekOffset * 7)
-  const doneDays = new Set(S.workouts.map(w => w.d))
+  // Workouts by the day they count for — the same grouping the month calendar uses, so a tap on
+  // a trained day here opens what was done there, as it does in the calendar.
+  const byDay = {}
+  S.workouts.forEach(w => { const day = workoutDay(w); if (day) (byDay[day] = byDay[day] || []).push(w) })
   // The last session logged for today, if any — what the row below reports instead of asking
   // you to start the one you already did. Last wins, so a second session names itself. Only once
   // today's plan is covered, though: a freestyle session on a planned day, or the rotation's
@@ -62,10 +68,10 @@ export default function Home() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(wkStart); d.setDate(wkStart.getDate() + i)
     const iso = isoOf(d)
-    const eff = effectiveRoutineIds(S, iso).length > 0, ovr = S.dayPlan[iso] !== undefined, done = doneDays.has(iso)
+    const eff = effectiveRoutineIds(S, iso).length > 0, ovr = S.dayPlan[iso] !== undefined, done = !!byDay[iso]
     // A day off with a note (#261) reads as excused, not as a plan that went by.
     const dot = done ? ' done' : dayNoteOf(S, iso) ? ' noted' : ovr && eff ? ' ovr' : eff ? ' plan' : ''
-    strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} {...tappable(() => dayOverrideSheet(iso))}>
+    strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} {...tappable(() => openDaySheet(iso, byDay[iso]))}>
       <div className="lbl">{t(DAYS[d.getDay()])}</div><div className="num">{d.getDate()}</div><div className={'dot' + dot} /></div>)
   }
   const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6)
@@ -197,7 +203,7 @@ export default function Home() {
           {!!delta && (
             <span className="small row" style={{ gap: 2, fontWeight: 500, color: bwDeltaColor(delta, bw.w) }}>
               <Icon name={delta > 0 ? 'arrowUp' : 'arrowDown'} style={{ fontSize: 12 }} />
-              {fmtNum(Math.abs(delta))}
+              {fmtNum(Math.abs(delta))}{fromStart && ' ' + t('since start')}
             </span>
           )}
           <span className="dim small" style={{ marginInlineStart: 'auto' }}>{fmtDate(bw.d, true)}</span>

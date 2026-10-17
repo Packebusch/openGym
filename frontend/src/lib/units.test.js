@@ -24,7 +24,7 @@ describe('convertWeight', () => {
 
 describe('convertStateUnit', () => {
   const S = {
-    unit: 'kg', targetW: 80, bodyweight: [{ d: '2026-01-01', w: 82.4, t: 1 }],
+    unit: 'kg', targetW: 80, startW: 85, bodyweight: [{ d: '2026-01-01', w: 82.4, t: 1 }],
     exWeights: { '0025': { w: 80, d: '2026-01-01' }, legacy: 100 }, barWeights: { '0025': 15 },
     routines: [{ id: 'r', ex: [{ id: '0025', sets: 3, reps: 5, weight: 80, inc: 2.5, warmup: [{ weight: 40, reps: 8 }] }, { id: 'plank', mode: 'time', sec: 30, inc: 5 }] }],
     workouts: [{ id: 'w', entries: [{ id: '0025', topW: 80, target: { weight: 80 }, planned: { sets: 3, reps: 5, weight: 80 }, sets: [{ w: 80, r: 5, done: true, drops: [{ w: 60, r: 5 }] }] }] }],
@@ -35,6 +35,7 @@ describe('convertStateUnit', () => {
     const out = convertStateUnit(S, 'lb')
     expect(out.unit).toBe('lb')
     expect(out.targetW).toBe(176.4)                 // body weight keeps its 0.1, see below
+    expect(out.startW).toBe(187.4)
     expect(out.bodyweight[0]).toEqual({ d: '2026-01-01', w: 181.7, t: 1 })
     expect(out.exWeights['0025'].w).toBe(176.5)
     expect(out.exWeights.legacy).toBe(220.5)

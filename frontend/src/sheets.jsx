@@ -728,6 +728,28 @@ function GoalSheet({ close }) {
       const b = lastBW(S()); toast(t('Goal set: {0}', fmtNum(n) + ' ' + st.unit) + (b ? ' (' + t('{0} to go', fmtNum(Math.abs(n - b.w))) + ')' : ''))
     }}>{t('Save goal')}</Button>
     {st.targetW && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { update(s => { s.targetW = null }); close(); toast(t('Goal removed')) }}>{t('Remove goal')}</Button></>}
+    <StartWeight close={close} />
+  </>
+}
+// The weight you started from: Home's arrow then reads as the change since it, not since the
+// weigh-in before, so one heavy morning stops looking like a gain.
+function StartWeight({ close }) {
+  const st = S()
+  const first = st.bodyweight[0]
+  const [v, setV] = useState(st.startW || (first ? first.w : 70))
+  return <>
+    <h3 style={{ marginTop: 24 }}>{t('Starting weight')}</h3>
+    <div className="muted small">{t('Your weight change on Home is measured from here instead of from the weigh-in before.')}</div>
+    <WeightInput value={v} setValue={setV} unit={st.unit} />
+    <div style={{ height: 14 }} />
+    <Button onClick={() => {
+      const n = Math.round((v || 0) * 10) / 10
+      if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
+      if (bwTooHeavy(n, st.unit)) return
+      update(s => { s.startW = n }); close()
+      toast(t('Starting weight set: {0}', fmtNum(n) + ' ' + st.unit))
+    }}>{t('Save starting weight')}</Button>
+    {st.startW && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { update(s => { s.startW = null }); close(); toast(t('Starting weight removed')) }}>{t('Remove starting weight')}</Button></>}
   </>
 }
 export const goalSheet = () => ui().openSheet(close => <GoalSheet close={close} />)
@@ -2683,6 +2705,13 @@ function mediaGoesToo(rec) {
 export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w={w} close={close} />)
 
 /* ============================ calendar ============================ */
+// A tapped day, from the month calendar or Home's week strip: a trained day shows what was done
+// (its one workout, or the list of them), any other day the plan sheet.
+export function openDaySheet(iso, ws) {
+  if (!ws?.length) { dayOverrideSheet(iso); return }
+  if (ws.length === 1) { workoutDetailSheet(ws[0]); return }
+  ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
+}
 function Calendar({ start, close }) {
   const st = useStore(s => s.S)
   const [cur, setCur] = useState(() => { const d = start ? new Date(start) : new Date(); d.setDate(1); return d })
@@ -2710,11 +2739,7 @@ function Calendar({ start, close }) {
     const note = !ws && dayNoteOf(st, iso)
     const dotCls = ws ? 'done' : note ? 'noted' : ovr && planned ? 'ovr' : planned ? 'plan' : ''
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (note ? ' noted' : '') + (iso === todayISO() ? ' today' : '')}
-      title={note ? dayNoteLine(note, t) : undefined} onClick={() => {
-      if (!ws) { close(); dayOverrideSheet(iso); return }
-      if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
-      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
-    }}><span>{d}</span><i className={dotCls} /></button>)
+      title={note ? dayNoteLine(note, t) : undefined} onClick={() => { close(); openDaySheet(iso, ws) }}><span>{d}</span><i className={dotCls} /></button>)
   }
   return <>
     <div className="row between" style={{ marginBottom: 2 }}>

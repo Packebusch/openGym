@@ -95,6 +95,7 @@ export function convertStateUnit(S, to) {
   const out = { ...S, unit: to }
   if (Array.isArray(S.bodyweight)) out.bodyweight = S.bodyweight.map(b => ({ ...b, w: bw(b.w) }))
   if (S.targetW != null) out.targetW = bw(S.targetW)
+  if (S.startW != null) out.startW = bw(S.startW)
   if (S.exWeights) out.exWeights = Object.fromEntries(Object.entries(S.exWeights).map(([k, v]) => [k, v && typeof v === 'object' ? { ...v, w: c(v.w) } : c(v)]))
   if (S.barWeights) out.barWeights = convBarWeights(S.barWeights, from, to)
   // The plate inventory (S.plates) is carried over as it is, not converted: it is kept per unit

@@ -22,6 +22,7 @@ import { useMediaPicker } from '../components/CustomMediaField.jsx'
 import { CustomThumb, MediaView, useMediaUrl } from '../components/CustomMedia.jsx'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
+import { goBack } from '../lib/nav.js'
 
 const toast = m => useUI.getState().toast(m)
 
@@ -170,7 +171,7 @@ export default function ProgressPhotos() {
   }
 
   return <>
-    <div className="hdr"><button className="iconbtn" onClick={() => nav('/stats')} aria-label={t('Stats')}><Icon name="chevronLeft" /></button>
+    <div className="hdr"><button className="iconbtn" onClick={() => goBack('/stats')} aria-label={t('Stats')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 12 }}><h1>{t('Progress photos')}</h1>
         <div className="sub">{tn('{0} photo', '{0} photos', photos.length)}</div></div>
       {photos.length >= 2 && (comparing

@@ -154,9 +154,12 @@ describe('CoachSetup — "use my self-hosted openGym"', () => {
   })
 
   it('Back returns to Settings', async () => {
+    const { setNav } = await import('../lib/nav.js')
+    setNav(mocks.nav)
     await mount()
     await click(host.querySelector('.hdr .iconbtn'))
-    expect(mocks.nav).toHaveBeenCalledWith('/settings')
+    // nothing behind it in this test's history, so Settings takes this page's place (goBack)
+    expect(mocks.nav).toHaveBeenCalledWith('/settings', { replace: true })
   })
 })
 

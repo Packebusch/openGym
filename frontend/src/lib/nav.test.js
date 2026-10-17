@@ -4,7 +4,7 @@
 // to do nothing.
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeThenNav, nav, navToWorkout, setNav } from './nav.js'
+import { closeThenNav, goBack, nav, navToWorkout, notePath, setNav } from './nav.js'
 
 let calls
 beforeEach(() => {
@@ -48,5 +48,24 @@ describe('nav', () => {
   it('starting from Home pushes, so back returns there', () => {
     navToWorkout()
     expect(calls).toEqual([['/workout']])
+  })
+})
+
+describe('goBack', () => {
+  it('walks back when the page before is the parent', () => {
+    notePath('/plan'); notePath('/plan/r/a')
+    history.replaceState({ idx: 1 }, '')
+    goBack('/plan')
+    expect(calls).toEqual([[-1]])
+  })
+
+  it('takes the parent\'s place when it came from somewhere else, or from nowhere', () => {
+    notePath('/home'); notePath('/measurements')
+    history.replaceState({ idx: 1 }, '')
+    goBack('/stats')
+    notePath('/history')
+    history.replaceState({ idx: 0 }, '')
+    goBack('/stats')
+    expect(calls).toEqual([['/stats', { replace: true }], ['/stats', { replace: true }]])
   })
 })

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { api } from '../lib/api.js'
@@ -11,6 +10,7 @@ import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import AdminCoach from './AdminCoach.jsx'
 import '../admin.css'
+import { goBack } from '../lib/nav.js'
 
 // Admin-only operator dashboard (owner passkey + admin flag; guarded again server-side).
 // Deliberately English-only — it isn't part of the translated end-user surface, so it stays
@@ -252,7 +252,6 @@ function AuditCard({ tick }) {
 }
 
 export default function Admin() {
-  const nav = useNavigate()
   const user = useStore(s => s.user)
   const openSheet = useUI(s => s.openSheet)
   const [users, setUsers] = useState(null)
@@ -283,7 +282,7 @@ export default function Admin() {
 
   return <div className="narrow">
     <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/settings/account')} aria-label="Back"><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" onClick={() => goBack('/settings/account')} aria-label="Back"><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 8 }}><h1 style={{ margin: 0 }}>Admin</h1>
         <div className="sub">{users ? users.length + ' users · ' + activeCount + ' active this week' : usersErr ? 'Could not load' : 'Loading…'}</div></div>
       <button className="iconbtn" onClick={() => { loadUsers(); loadInvites(); setTick(n => n + 1) }} aria-label="refresh">↻</button>

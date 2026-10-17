@@ -517,3 +517,19 @@ describe('the restore window under StrictMode', () => {
     vi.useRealTimers()
   })
 })
+
+describe('Modals as dialogs', () => {
+  it('names the sheet by its heading and makes the page behind inert while open', async () => {
+    const app = document.createElement('div'); app.id = 'app'; document.body.appendChild(app)
+    await setSheets([sheet('one', { render: () => React.createElement('h3', null, 'Pick one') })])
+    const el = document.querySelector('.sheet')
+    expect(el.getAttribute('role')).toBe('dialog')
+    expect(el.getAttribute('aria-modal')).toBe('true')
+    expect(document.getElementById(el.getAttribute('aria-labelledby')).textContent).toBe('Pick one')
+    expect(app.inert).toBe(true)
+    await setSheets([])
+    expect(app.inert).toBe(false)
+    app.remove()
+  })
+})
+

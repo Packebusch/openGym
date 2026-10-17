@@ -14,7 +14,7 @@
 // on this screen.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { closeThenNav } from '../lib/nav.js'
+import { closeThenNav, goBack } from '../lib/nav.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
@@ -187,7 +187,7 @@ export default function CoachChat() {
 
   return <div className="narrow chat">
     <div className="chat-hdr">
-      <button className="iconbtn" onClick={() => nav('/plan')} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" onClick={() => goBack('/plan')} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
       <div className="chat-av"><Icon name="sparkles" /></div>
       <div className="grow">
         <h1>{t('Coach')}</h1>

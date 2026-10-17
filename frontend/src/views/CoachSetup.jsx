@@ -22,6 +22,7 @@ import { DATA_CATEGORIES } from '../../../api/coach/core/categories.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, Button, TextField } from '../components/ui.jsx'
+import { goBack } from '../lib/nav.js'
 
 // Literal t() calls, so check-source-strings sees the three lines; t(s) over a list of keys hid them.
 const STEPS = () => [t('Loading the exercise catalogue…'), t('Checking the endpoint…'), t('Ready')]
@@ -136,7 +137,7 @@ export default function CoachSetup() {
 
   return <div className="narrow">
     <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" onClick={() => goBack('/settings')} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 10 }}><h1>{t('AI Coach')}</h1></div>
     </div>
 

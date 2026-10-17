@@ -122,6 +122,25 @@ function Sheet({ sheet }) {
   }, [])
 
   const close = () => closeSheet(sheet.id)
+  // A dialog to assistive tech: named by its own heading, and focus moved into it on open (unless
+  // a field in it already took focus) and handed back to what opened it on close. Not back to a
+  // text field: that would bring the keyboard straight back up.
+  const box = useRef(null)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const opener = document.activeElement
+    const h = el.querySelector('h1,h2,h3')
+    if (h) { if (!h.id) h.id = 'sheet-title-' + sheet.id; el.setAttribute('aria-labelledby', h.id) }
+    if (!el.contains(document.activeElement)) el.focus?.({ preventScroll: true })
+    return () => {
+      const typing = opener && (opener.tagName === 'INPUT' || opener.tagName === 'TEXTAREA' || opener.isContentEditable)
+      // after this commit, once the page behind has lost its inert again
+      if (opener && opener !== document.body && !typing)
+        setTimeout(() => { if (opener.isConnected && !opener.closest?.('[inert]')) opener.focus?.({ preventScroll: true }) }, 0)
+    }
+  }, [])
+  const dialog = { role: 'dialog', 'aria-modal': 'true', tabIndex: -1 }
   // Full screen, on black: a photo or video opened from a workout (WorkoutMedia.jsx). No
   // backdrop to tap, no drag to dismiss — the viewer has its own close button, and back closes
   // it like any sheet.
@@ -130,14 +149,14 @@ function Sheet({ sheet }) {
     return (
       <div>
         <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
-        <div className="center">{sheet.render(close)}</div>
+        <div className="center" ref={box} {...dialog}>{sheet.render(close)}</div>
       </div>
     )
   }
   return (
     <div>
       <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
-      <div className="sheet" ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      <div className="sheet" ref={el => { ref.current = el; box.current = el }} {...dialog} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
         onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
         <div className="grab" />
         {sheet.render(close)}
@@ -202,6 +221,14 @@ export default function Modals() {
     return () => window.removeEventListener('popstate', onPop)
   }, [sheets, closeSheet])
 
+  // The page behind an open sheet is out of reach for focus and screen readers too, not only
+  // for the finger the backdrop stops.
+  useEffect(() => {
+    if (!sheets.length) return
+    const behind = ['app', 'tabbar', 'timer'].map(id => document.getElementById(id)).filter(Boolean)
+    behind.forEach(el => { el.inert = true })
+    return () => behind.forEach(el => { el.inert = false })
+  }, [sheets.length])
   // lock the page behind any open sheet (iOS-safe)
   useEffect(() => {
     if (!sheets.length) return

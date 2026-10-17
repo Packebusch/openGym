@@ -52,6 +52,27 @@
   --acc-text: var(--acc);
   --yellow-text: var(--yellow);
 
+  /* status, by meaning rather than by hue: what a colour says is decided here once, not at
+     each element (design audit, proposal 12). Done is green whatever the accent; live (a
+     session running) orange; goal yellow; danger red. */
+  --ok: var(--green);
+  --ok-soft: color-mix(in srgb, var(--ok) 16%, transparent);
+  --live: var(--orange);
+  --live-soft: color-mix(in srgb, var(--live) 16%, transparent);
+  --goal: var(--yellow-text);
+  --danger: var(--red);
+
+  /* one type scale — six steps. A size off this scale is a bug. */
+  --fs-xs:12px;   /* captions, axis labels */
+  --fs-sm:13px;   /* secondary lines */
+  --fs-md:15px;   /* list rows */
+  --fs-lg:17px;   /* body, buttons */
+  --fs-xl:22px;   /* card headline numbers */
+  --fs-2xl:34px;  /* page titles */
+
+  /* spacing on a 4/8 grid */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+
   /* geometry */
   --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px; --r-card:14px;
   --pad:16px;

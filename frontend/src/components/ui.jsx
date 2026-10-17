@@ -15,7 +15,7 @@
 
 import { useRef, useState, useEffect, useCallback, forwardRef } from 'react'
 import Icon from './Icon.jsx'
-import { sheetKeyboardInsets } from '../lib/use-sheet-keyboard.js'
+import { sheetKeyboardInsets, tappable } from '../lib/use-sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from '../lib/native-keyboard.js'
 import { t } from '../lib/i18n.js'
 
@@ -333,6 +333,28 @@ export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none'
       {accessory === 'check' && <Icon name="check" className="lrow-k" />}
     </Tag>
   )
+}
+
+/* ============================ list item & tile ============================ */
+// One row of a `.list` (design audit, proposal 12): the icon chip, a title with an optional line
+// under it, then whatever trails — a value, a tag, a chevron. The same markup was written out by
+// hand in every view; this is it once, so a change to rows is a change in one place. A row with
+// `onClick` is a button to the keyboard and to a screen reader as well (lib/use-sheet-keyboard.js).
+export function ListItem({ icon, tint, title, sub, trailing, chevron = false, onClick, className = '', titleClass = '', ...rest }) {
+  return <div className={'item ' + className} {...tappable(onClick)} {...rest}>
+    {icon && <span className="lrow-i" style={tint ? { background: tint } : undefined}><Icon name={icon} /></span>}
+    <div className="grow" style={{ minWidth: 0 }}>
+      <div className={'tt ' + titleClass}>{title}</div>
+      {sub && <div className="ss">{sub}</div>}
+    </div>
+    {trailing}
+    {chevron && <Icon name="chevronRight" className="chev" />}
+  </div>
+}
+
+// A headline number with its label above it, for a row of `.tiles`.
+export function Tile({ icon, label, value, style }) {
+  return <div className="tile"><div className="l">{icon && <Icon name={icon} />}{label}</div><div className="v" style={style}>{value}</div></div>
 }
 
 /* ============================ picker ============================ */

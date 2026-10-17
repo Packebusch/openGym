@@ -2,7 +2,7 @@
 import React, { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Slider, Stepper, NumberField, numWidthCh, SLIDER_GRAB_PX } from './ui.jsx'
+import { Slider, Stepper, NumberField, numWidthCh, SLIDER_GRAB_PX, ListItem, Tile } from './ui.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -311,5 +311,28 @@ describe('NumberField select on tap', () => {
     act(() => input.focus())
     act(() => input.blur())
     expect(mouseup(input).defaultPrevented).toBe(false)
+  })
+})
+
+// Design audit, proposal 12: the shared row and tile.
+describe('ListItem and Tile', () => {
+  it('a row with a tap is a button to the keyboard; one without is plain', () => {
+    const onClick = vi.fn()
+    act(() => root.render(<div><ListItem icon="ruler" title="Body measurements" sub="Last check-in" chevron onClick={onClick} /><ListItem title="Static" /></div>))
+    const [tap, plain] = host.querySelectorAll('.item')
+    expect(tap.getAttribute('role')).toBe('button')
+    expect(tap.querySelector('.tt').textContent).toBe('Body measurements')
+    expect(tap.querySelector('.ss').textContent).toBe('Last check-in')
+    expect(tap.querySelector('.chev')).not.toBeNull()
+    act(() => { tap.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+    expect(onClick).toHaveBeenCalledOnce()
+    expect(plain.getAttribute('role')).toBeNull()
+    expect(plain.querySelector('.ss')).toBeNull()
+  })
+
+  it('a tile carries its label and value', () => {
+    act(() => root.render(<Tile icon="flame" label="Week streak" value={3} />))
+    expect(host.querySelector('.tile .l').textContent).toBe('Week streak')
+    expect(host.querySelector('.tile .v').textContent).toBe('3')
   })
 })
